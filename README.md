@@ -340,10 +340,6 @@ inventor-flow/
 
 ## 📄 Licence
 
-Projet **privé** — tous droits réservés. *(Adaptez cette section selon votre choix de licence.)*
-
----
-
 <div align="center">
 
 **InventorFlow** — conçu pour les prestataires IT qui veulent tout voir, d'un seul écran.
