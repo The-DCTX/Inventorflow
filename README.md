@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🗂️ InventorFlow
+# 🗂️ Inventor-Flow
 
 ### Gestion de parc informatique multi-client — inventaire, supervision, licences & facturation
 
