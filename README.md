@@ -338,10 +338,6 @@ inventor-flow/
 
 ---
 
-## 📄 Licence
-
-<div align="center">
-
 **InventorFlow** — conçu pour les prestataires IT qui veulent tout voir, d'un seul écran.
 
 </div>
