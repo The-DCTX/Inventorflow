@@ -22,6 +22,8 @@
 [Agent](#-déploiement-de-lagent) •
 [Stack](#-stack-technique)
 
+</div>
+
 ---
 
 ## 📋 Présentation
@@ -231,7 +233,5 @@ En résumé : vous êtes libre d'utiliser, modifier et redistribuer ce projet, *
 <div align="center">
 
 **InventorFlow** — conçu pour les prestataires IT qui veulent tout voir, d'un seul écran.
-
-</div>
 
 </div>
