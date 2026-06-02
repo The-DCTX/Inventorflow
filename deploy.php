@@ -38,7 +38,14 @@ $app_name    = $settings_map['app_name'] ?? 'InventorFlow';
 
 // Use the actual request host so the agent phones home to the same server it was deployed from.
 // This works correctly whether accessed via IP, hostname or domain.
-$proto      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+// Honour the reverse-proxy scheme (X-Forwarded-Proto) so an agent deployed via HTTPS
+// phones home in HTTPS — otherwise curl -L follows the 301 http->https and drops the POST body.
+$proto      = (
+       (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
+    || (($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '') === 'on')
+    || (($_SERVER['SERVER_PORT'] ?? '') == 443)
+) ? 'https' : 'http';
 $server_url = rtrim($proto . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost:8083'), '/');
 $client_name = $key_row['client_name'];
 

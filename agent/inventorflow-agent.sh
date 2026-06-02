@@ -319,27 +319,22 @@ else
     collect_linux
 fi
 
+# ── JSON helpers (GLOBAUX : utilisés par l'enregistrement ET le monitoring) ──
+# Pure-bash JSON string escaping — no Python dependency
+json_str() {
+    local val="${1:-}"
+    val="${val//\\/\\\\}"     # 1. backslashes
+    val="${val//\"/\\\"}"     # 2. double-quotes
+    val="$(printf '%s' "$val" | tr -d '\000-\031' 2>/dev/null || printf '%s' "$val")"  # 3. control chars
+    printf '"%s"' "$val"
+}
+# Alias for backwards compat
+json_escape() { json_str "$@"; }
+
 if [[ "$_DO_REGISTER" == "true" ]]; then
 log "Collected: hostname=${HOSTNAME} os=${OS_TYPE} model=${MODEL} ip=${IP:-none} serial=${SERIAL:-none}"
 
 # ── BUILD JSON PAYLOAD ───────────────────────────────────────
-
-# Pure-bash JSON string escaping — no Python dependency
-json_str() {
-    local val="${1:-}"
-    # 1. Escape backslashes
-    val="${val//\\/\\\\}"
-    # 2. Escape double-quotes
-    val="${val//\"/\\\"}"
-    # 3. Strip control chars (tabs, newlines, etc.)
-    val="$(printf '%s' "$val" | tr -d '\000-\031' 2>/dev/null || printf '%s' "$val")"
-    printf '"%s"' "$val"
-
-    # Sync vers MON_BF_JSON (comme collect_brute_force_linux)
-    MON_BF_JSON="${BRUTE_JSON:-[]}"
-}
-# Alias for backwards compat
-json_escape() { json_str "$@"; }
 
 PAYLOAD=$(cat <<EOF
 {
@@ -356,9 +351,6 @@ PAYLOAD=$(cat <<EOF
   "ip_address":    $(json_escape "${IP:-}"),
   "mac_address":   $(json_escape "${MAC_ADDR:-}"),
   "dept_code":     $(json_escape "${IF_DEPT_CODE:-}")
-
-    # Sync vers MON_BF_JSON (comme collect_brute_force_linux)
-    MON_BF_JSON="${BRUTE_JSON:-[]}"
 }
 EOF
 )
@@ -519,7 +511,7 @@ collect_brute_force_mac() {
         || true)
 
     # Compter les IPs externes — grep -c . retourne 0 sur vide (pas comme wc -l)
-    MON_FAILED_24H=$(printf '%s' "$EXT_LINES" | grep -c . 2>/dev/null || echo 0)
+    MON_FAILED_24H=$(printf '%s' "$EXT_LINES" | grep -c . 2>/dev/null || true)
 
     if [[ $MON_FAILED_24H -gt 0 ]]; then
         # Compter la dernière heure
@@ -537,7 +529,7 @@ collect_brute_force_mac() {
                 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' \
                 | grep -vE "${IF_LAN_WHITELIST:-^$}" \
                 | grep -vE '^127\.' || true)
-            MON_FAILED_1H=$(printf '%s' "$RECENT_IPS" | grep -c . 2>/dev/null || echo 0)
+            MON_FAILED_1H=$(printf '%s' "$RECENT_IPS" | grep -c . 2>/dev/null || true)
         fi
 
         # Top attaquants — agréger par IP
@@ -602,7 +594,7 @@ collect_brute_force_linux() {
 
     if [[ -n "$ALL_LINES" ]]; then
         # `grep -c .` returns 1 on empty input — `|| echo 0` makes it set -e safe.
-        MON_FAILED_24H=$(echo "$AUTH_LINES" | grep -c . 2>/dev/null || echo 0)
+        MON_FAILED_24H=$(echo "$AUTH_LINES" | grep -c . 2>/dev/null || true)
 
         # Portable "1 hour ago" epoch: perl → GNU date → python3 → 0
         # BusyBox `date` lacks `-d 'N units ago'`; perl is universally available on
@@ -765,9 +757,6 @@ MON_PAYLOAD=$(cat <<EOF
   "failed_auth_1h":  ${MON_FAILED_1H},
   "failed_auth_24h": ${MON_FAILED_24H},
   "brute_force":     ${MON_BF_JSON:-[]}
-
-    # Sync vers MON_BF_JSON (comme collect_brute_force_linux)
-    MON_BF_JSON="${BRUTE_JSON:-[]}"
 }
 EOF
 )
