@@ -22,8 +22,6 @@
 [Agent](#-déploiement-de-lagent) •
 [Stack](#-stack-technique)
 
-</div>
-
 ---
 
 ## 📋 Présentation
@@ -389,8 +387,6 @@ Distribué sous licence **MIT**. Voir le fichier [`LICENSE`](LICENSE) pour le te
 Vous êtes libre d'utiliser, modifier et redistribuer ce projet, y compris à des fins commerciales, à condition de conserver la notice de copyright et de licence.
 
 ---
-
-<div align="center">
 
 **InventorFlow** — conçu pour les prestataires IT qui veulent tout voir, d'un seul écran.
 
