@@ -151,6 +151,15 @@ L'installeur, **interactif et idempotent**, gère :
 
 > Port, identifiants DB et mot de passe admin se règlent en tête de `install.sh`.
 
+> ### 🔐 OBLIGATOIRE — changez les mots de passe par défaut
+> L'installeur fournit des identifiants **par défaut, publics** :
+> `DB_PASS="InventorFlow2024!"` et `ADMIN_PASS="AdminTest2024!"`.
+> **Tels quels, votre installation n'est pas sécurisée.** Changez-les :
+> - **Avant l'install** : éditez les valeurs en tête de `install.sh`.
+> - **Après l'install** : mot de passe admin via **Paramètres → Utilisateurs** ; mot de passe BDD via `config/db.php` + `ALTER USER` MariaDB.
+>
+> 👉 Procédure détaillée : **[Wiki — Sécurité & mots de passe](https://github.com/The-DCTX/Inventorflow/wiki/Securite-mots-de-passe)**
+
 ---
 
 ## 📦 Déploiement de l'agent
@@ -206,6 +215,7 @@ inventor-flow/
 
 ## 🔒 Sécurité
 
+- ⚠️ **Identifiants par défaut à changer immédiatement** (`DB_PASS`, `ADMIN_PASS`) — voir **[Wiki — Sécurité & mots de passe](https://github.com/The-DCTX/Inventorflow/wiki/Securite-mots-de-passe)**
 - Authentification par session, mots de passe en **bcrypt**
 - En-têtes `X-Content-Type-Options`, `X-Frame-Options`
 - API d'enrôlement protégée par **clé d'API** par client

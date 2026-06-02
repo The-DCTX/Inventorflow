@@ -64,6 +64,9 @@ case "${1:-}" in
   -h|--help) show_help; exit 0 ;;
 esac
 
+ASSUME_YES=0
+if [ "${1:-}" = "-y" ] || [ "${1:-}" = "--yes" ]; then ASSUME_YES=1; fi
+
 [ "$(id -u)" -ne 0 ] && fail "Ce script doit être lancé en root : sudo bash $0"
 
 # ── Avertissement & consentement éclairé ──────────────────────────────────────
@@ -106,7 +109,11 @@ if dpkg -l 2>/dev/null | awk '{print $2}' | grep -qE 'mariadb|mysql'; then
 fi
 
 ERASE_DB=0
-if [ "$DB_EXISTS" -eq 1 ]; then
+if [ "$DB_EXISTS" -eq 1 ] && [ "$ASSUME_YES" -eq 1 ]; then
+    # Mode non-interactif (-y) : on ne détruit jamais de données sans confirmation.
+    ERASE_DB=0
+    warn "MariaDB déjà présent — mode -y : conservation des bases existantes (aucune purge)."
+elif [ "$DB_EXISTS" -eq 1 ]; then
     echo
     echo -e "  ${YELLOW}⚠  MariaDB déjà présent sur ce système.${RESET}"
     echo -e "  ${BOLD}Que faire des bases de données existantes ?${RESET}"
@@ -180,7 +187,7 @@ PKGS_TO_INSTALL=""
 need_install apache2       /etc/apache2/apache2.conf  && PKGS_TO_INSTALL="$PKGS_TO_INSTALL apache2"
 need_install mariadb-server /etc/mysql/mariadb.cnf    && PKGS_TO_INSTALL="$PKGS_TO_INSTALL mariadb-server"
 need_install php           /usr/bin/php               && PKGS_TO_INSTALL="$PKGS_TO_INSTALL php"
-for pkg in php-mysql php-mbstring php-xml php-curl php-zip php-gd php-fpm curl unzip; do
+for pkg in php-mysql php-mbstring php-xml php-curl php-zip php-gd php-fpm curl unzip rsync; do
     need_install "$pkg" && PKGS_TO_INSTALL="$PKGS_TO_INSTALL $pkg"
 done
 
@@ -299,10 +306,11 @@ function db(): PDO {
 }
 PHP
 
-# Config App
+# Config App — version lue depuis le fichier VERSION livré avec le dépôt
+APP_VER="$(tr -cd '0-9.' < "${APP_SRC}/VERSION" 2>/dev/null || true)"; APP_VER="${APP_VER:-1.0.0}"
 cat > "${INSTALL_DIR}/config/app.php" << PHP
 <?php
-define('APP_VERSION',  '1.0.0');
+define('APP_VERSION',  '${APP_VER}');
 define('APP_URL',      '');
 define('SESSION_NAME', 'inventorflow_session');
 session_name(SESSION_NAME);
@@ -333,6 +341,35 @@ chown -R www-data:www-data "${INSTALL_DIR}"
 find "${INSTALL_DIR}" -type f -exec chmod 644 {} \;
 find "${INSTALL_DIR}" -type d -exec chmod 755 {} \;
 ok "Fichiers déployés dans ${INSTALL_DIR}"
+
+# --- Mises à jour en un clic (Administration → Mises à jour) -------------------
+# Le script update.sh doit être root-owned et NON modifiable par le web,
+# puis une règle sudoers verrouillée autorise www-data à lancer UNIQUEMENT ce
+# script en root. update.sh ne télécharge que depuis le dépôt officiel (HTTPS),
+# ne fait aucune purge et sauvegarde la base avant toute migration.
+UPDATE_SH="${INSTALL_DIR}/maintenance/update.sh"
+if [[ -f "$UPDATE_SH" ]]; then
+    chown root:root "$UPDATE_SH"
+    chmod 755 "$UPDATE_SH"
+    SUDOERS_FILE="/etc/sudoers.d/inventorflow-update"
+    echo "www-data ALL=(root) NOPASSWD: ${UPDATE_SH}" > "$SUDOERS_FILE"
+    chmod 440 "$SUDOERS_FILE"
+    if visudo -cf "$SUDOERS_FILE" >/dev/null 2>&1; then
+        ok "Mises à jour en un clic activées (règle sudo verrouillée sur update.sh)"
+    else
+        rm -f "$SUDOERS_FILE"
+        warn "Règle sudo non installée (visudo a refusé) — les mises à jour resteront en ligne de commande."
+    fi
+fi
+
+# Migrations additives + table schema_version (forward-only, idempotent).
+# Sur une install neuve, install.sql contient déjà le schéma : ceci ne fait
+# qu'initialiser schema_version (rien de destructif).
+if [[ -f "${INSTALL_DIR}/maintenance/migrate.php" ]]; then
+    php "${INSTALL_DIR}/maintenance/migrate.php" >/dev/null 2>&1 \
+        && ok "Schéma de base à jour (schema_version initialisé)" \
+        || warn "migrate.php non exécuté — lancez 'php maintenance/migrate.php' si besoin."
+fi
 
 # 5. VirtualHost Apache
 log "--- Configuration Apache vhost..."

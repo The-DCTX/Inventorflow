@@ -90,6 +90,7 @@ function render_sidebar(string $active = ''): void {
             ['id' => 'apikeys',      'label' => 'Clés API',      'icon' => 'key',       'url' => APP_URL . '/pages/apikeys.php'],
             ['id' => 'users-admin',  'label' => 'Utilisateurs',  'icon' => 'users',     'url' => APP_URL . '/pages/users-admin.php', 'superadmin' => true],
             ['id' => 'backups',      'label' => 'Sauvegardes',   'icon' => 'download',  'url' => APP_URL . '/pages/backups.php', 'superadmin' => true],
+            ['id' => 'updates',      'label' => 'Mises à jour',  'icon' => 'download',  'url' => APP_URL . '/pages/updates.php', 'superadmin' => true],
         ]],
     ];
     if (is_superadmin()) {
@@ -170,7 +171,22 @@ function render_sidebar(string $active = ''): void {
     <?php
 }
 
+function render_update_banner(): void {
+    if (!function_exists('is_superadmin') || !is_superadmin()) return;
+    if (!function_exists('latest_available_version')) return;
+    $latest = latest_available_version();
+    if (!$latest || !version_compare($latest, APP_VERSION, '>')) return;
+    ?>
+    <div class="update-banner" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;margin:0 0 14px;background:var(--accent-dim,#15301f);border:1px solid var(--accent,#3fb950);border-radius:10px;font-size:13px;color:var(--text,#c9d1d9)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent,#3fb950)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span><strong>Mise à jour disponible :</strong> InventorFlow <?= h($latest) ?> &nbsp;(installé : <?= h(APP_VERSION) ?>)</span>
+        <a href="<?= APP_URL ?>/pages/updates.php" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:var(--accent,#3fb950);color:#0d1117;font-weight:700;border-radius:7px;text-decoration:none">Voir et installer →</a>
+    </div>
+    <?php
+}
+
 function render_topbar(string $title = '', string $subtitle = ''): void {
+    render_update_banner();
     ?>
     <div class="topbar">
         <button class="menu-btn" id="menuBtn" aria-label="Menu">

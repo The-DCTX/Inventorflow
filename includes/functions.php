@@ -241,3 +241,115 @@ function time_ago(string $datetime): string {
     if ($diff < 2592000) return floor($diff/86400) . 'j';
     return date('d/m/Y', strtotime($datetime));
 }
+
+/**
+ * Dernière release GitHub (version + notes + url), en cache 24h dans app_settings.
+ * Lecture seule, non bloquant : tout échec réseau renvoie le dernier cache connu.
+ * $force = true : ignore le cache (bouton « Rechercher les mises à jour »).
+ *
+ * @return array{version:?string,notes:string,url:string,published_at:string}
+ */
+function github_latest_release(bool $force = false): array {
+    $out = ['version' => null, 'notes' => '', 'url' => 'https://github.com/The-DCTX/Inventorflow/releases/latest', 'published_at' => ''];
+    try {
+        $pdo = db();
+        $get = fn(string $k) => $pdo->query("SELECT setting_value FROM app_settings WHERE setting_key = " . $pdo->quote($k))->fetchColumn();
+        $checked = (int)$get('update_checked_at');
+
+        if (!$force && $checked && (time() - $checked) < 86400) {
+            $out['version']      = $get('update_latest') ?: null;
+            $out['notes']        = (string)($get('update_notes') ?: '');
+            $out['url']          = (string)($get('update_url') ?: $out['url']);
+            $out['published_at'] = (string)($get('update_published') ?: '');
+            return $out;
+        }
+
+        $ctx = stream_context_create(['http' => [
+            'method'  => 'GET',
+            'timeout' => 4,
+            'header'  => "User-Agent: InventorFlow-UpdateCheck\r\nAccept: application/vnd.github+json\r\n",
+        ]]);
+        $json = @file_get_contents('https://api.github.com/repos/The-DCTX/Inventorflow/releases/latest', false, $ctx);
+        if ($json) {
+            $d = json_decode($json, true);
+            if (!empty($d['tag_name'])) {
+                $out['version']      = ltrim((string)$d['tag_name'], 'vV');
+                $out['notes']        = (string)($d['body'] ?? '');
+                $out['url']          = (string)($d['html_url'] ?? $out['url']);
+                $out['published_at'] = (string)($d['published_at'] ?? '');
+            }
+        }
+
+        $set = $pdo->prepare("INSERT INTO app_settings (setting_key, setting_value) VALUES (?, ?)
+                              ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+        $set->execute(['update_checked_at', (string)time()]);   // anti-martèlement même en cas d'échec
+        if ($out['version']) {
+            $set->execute(['update_latest', $out['version']]);
+            $set->execute(['update_notes', $out['notes']]);
+            $set->execute(['update_url', $out['url']]);
+            $set->execute(['update_published', $out['published_at']]);
+        } else {
+            // échec réseau : on retombe sur le dernier cache connu
+            $out['version']      = $get('update_latest') ?: null;
+            $out['notes']        = (string)($get('update_notes') ?: '');
+            $out['url']          = (string)($get('update_url') ?: $out['url']);
+            $out['published_at'] = (string)($get('update_published') ?: '');
+        }
+        return $out;
+    } catch (\Throwable $e) {
+        return $out;
+    }
+}
+
+/** Dernière version disponible sur GitHub (string) ou null. Voir github_latest_release(). */
+function latest_available_version(): ?string {
+    return github_latest_release(false)['version'];
+}
+
+/**
+ * Mini-rendu Markdown → HTML (sous-ensemble suffisant pour des notes de release).
+ * Échappe tout le HTML d'abord (sûr), puis applique titres, listes, gras, code, liens.
+ */
+function md_to_html(string $md): string {
+    $esc    = fn(string $s) => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+    $inline = function (string $t) use ($esc): string {
+        $t = $esc($t);
+        $t = preg_replace('/`([^`]+)`/', '<code>$1</code>', $t);
+        $t = preg_replace('/\*\*([^*]+)\*\*/', '<strong>$1</strong>', $t);
+        $t = preg_replace('/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/', '<a href="$2" target="_blank" rel="noopener">$1</a>', $t);
+        return $t;
+    };
+    $html = '';
+    $in_list = false;
+    $in_code = false;
+    foreach (preg_split('/\r\n|\r|\n/', $md) as $ln) {
+        if (preg_match('/^```/', $ln)) {
+            if ($in_code) { $html .= '</code></pre>'; $in_code = false; }
+            else { if ($in_list) { $html .= '</ul>'; $in_list = false; } $html .= '<pre><code>'; $in_code = true; }
+            continue;
+        }
+        if ($in_code) { $html .= $esc($ln) . "\n"; continue; }
+        if (preg_match('/^(#{1,6})\s+(.*)/', $ln, $m)) {
+            if ($in_list) { $html .= '</ul>'; $in_list = false; }
+            $lvl = min(strlen($m[1]) + 1, 6);
+            $html .= "<h{$lvl}>" . $inline($m[2]) . "</h{$lvl}>";
+            continue;
+        }
+        if (preg_match('/^\s*[-*]\s+(.*)/', $ln, $m)) {
+            if (!$in_list) { $html .= '<ul>'; $in_list = true; }
+            $html .= '<li>' . $inline($m[1]) . '</li>';
+            continue;
+        }
+        if (preg_match('/^---+\s*$/', $ln)) {
+            if ($in_list) { $html .= '</ul>'; $in_list = false; }
+            $html .= '<hr>';
+            continue;
+        }
+        if (trim($ln) === '') { if ($in_list) { $html .= '</ul>'; $in_list = false; } continue; }
+        if ($in_list) { $html .= '</ul>'; $in_list = false; }
+        $html .= '<p>' . $inline($ln) . '</p>';
+    }
+    if ($in_list) { $html .= '</ul>'; }
+    if ($in_code) { $html .= '</code></pre>'; }
+    return $html;
+}

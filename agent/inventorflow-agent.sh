@@ -26,9 +26,56 @@ IF_INTERVAL=300          # Monitoring : toutes les 5 min
 IF_REG_EVERY=12          # Enregistrement complet : toutes les 12 cycles (60 min)
 IF_LAN_WHITELIST="192\.168\.\."  # IPs LAN ignorées (regex) — pas d'alerte pour le réseau local
 IF_LOG="/var/log/inventorflow-agent.log"
+IF_AGENT_VERSION="1.0.6"  # version embarquée (auto-update)
+IF_SELF_UPDATE=true       # false pour désactiver la mise à jour automatique de l'agent
 # ─────────────────────────────────────────────────────────────
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+
+# ── AUTO-UPDATE (l'agent se met à jour seul depuis le serveur) ──
+# Compare deux versions sémantiques : succès (0) si $1 > $2.
+_version_gt() {
+    [[ "$1" == "$2" ]] && return 1
+    local IFS=. a b i x y
+    a=($1); b=($2)
+    for ((i=0; i<${#a[@]} || i<${#b[@]}; i++)); do
+        x=${a[i]:-0}; y=${b[i]:-0}
+        ((10#$x > 10#$y)) && return 0
+        ((10#$x < 10#$y)) && return 1
+    done
+    return 1
+}
+
+self_update() {
+    [[ "${IF_SELF_UPDATE:-true}" == "true" ]] || return 0
+    [[ -n "${IF_SELFUPDATED:-}" ]] && return 0                          # garde anti-boucle
+    [[ "$IF_API_KEY" == "REPLACE_WITH_YOUR_API_KEY" ]] && return 0      # agent non configuré
+    local remote
+    remote=$(curl -fsSL --max-time "${IF_TIMEOUT:-10}" "${IF_SERVER}/api/agent-version.php" 2>/dev/null \
+             | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
+    [[ -z "$remote" ]] && return 0
+    _version_gt "$remote" "$IF_AGENT_VERSION" || return 0
+    log "Auto-update : $IF_AGENT_VERSION -> $remote"
+    local self tmp newver
+    self="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+    [[ -w "$self" ]] || { log "Auto-update ignoré (pas de droit d'écriture sur $self)"; return 0; }
+    tmp="$(mktemp)" || return 0
+    if curl -fsSL --max-time 30 "${IF_SERVER}/deploy.php?key=${IF_API_KEY}&raw=1" -o "$tmp" 2>/dev/null \
+       && bash -n "$tmp" 2>/dev/null \
+       && grep -q '^IF_AGENT_VERSION=' "$tmp"; then
+        newver=$(grep -m1 '^IF_AGENT_VERSION=' "$tmp" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
+        if [[ "$newver" == "$remote" ]]; then
+            cat "$tmp" > "$self" && chmod +x "$self"
+            rm -f "$tmp"
+            log "Auto-update OK ($newver) — redémarrage de l'agent"
+            export IF_SELFUPDATED=1
+            exec "$self" "$@"
+        fi
+    fi
+    rm -f "$tmp"
+    log "Auto-update ignoré (téléchargement/validation échoués)"
+    return 0
+}
 
 # ── CYCLE COUNTER ────────────────────────────────────────────
 # Enregistrement complet toutes les IF_REG_EVERY cycles
@@ -49,6 +96,9 @@ else
     log "ERROR: Unsupported OS: $(uname)"
     exit 1
 fi
+
+# Auto-update avant tout traitement (peut relancer l'agent via exec)
+self_update "$@"
 
 # ── COLLECT SYSTEM INFO ──────────────────────────────────────
 

@@ -182,6 +182,14 @@ $agent = preg_replace('/IF_SERVER="[^"]*"/',    "IF_SERVER=\"{$server_url}\"",  
 $agent = preg_replace('/IF_API_KEY="[^"]*"/',   "IF_API_KEY=\"{$api_key}\"",    $agent);
 $agent = preg_replace('/IF_DEPT_CODE="[^"]*"/', "IF_DEPT_CODE=\"{$dept}\"",     $agent);
 
+// ── RAW : renvoie UNIQUEMENT l'agent configuré (pas l'installeur) ──
+// Utilisé par l'auto-update de l'agent (?raw=1) : il réécrit son propre binaire.
+if (!empty($_GET['raw'])) {
+    header('Content-Type: text/x-shellscript; charset=utf-8');
+    echo $agent;
+    exit;
+}
+
 header('Content-Type: text/plain; charset=utf-8');
 header('Content-Disposition: inline; filename="inventorflow-install.sh"');
 ?>
