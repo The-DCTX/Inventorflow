@@ -75,7 +75,7 @@
 - Isolation des données par `client_id` sur toutes les vues
 
 ### 📡 Supervision temps réel
-- Agent **bash universel** (macOS + Linux) qui remonte chaque heure : CPU, RAM, disque, load, uptime, processus
+- Agent **universel** (**macOS, Windows, Linux**) qui remonte chaque heure : CPU, RAM, disque, load, uptime, processus
 - **Température CPU** multi-plateforme (Apple Silicon, Intel SMC, Linux `sensors`)
 - Détection de **brute-force SSH** (auth.log / journalctl) avec whitelist LAN
 - Dashboard à barres colorées, statuts *heartbeat* et alertes de sécurité
@@ -119,12 +119,12 @@ flowchart LR
         A --> P --> DB
     end
 
-    Postes -- "agent bash (HTTPS, horaire)" --> A
+    Postes -- "agent (HTTPS, horaire)" --> A
     U["👤 Admin / Client"] -- "Dashboard web" --> A
     A -- "deploy.php (clé client)" --> Postes
 ```
 
-**Principe :** un serveur central (PHP-FPM + MariaDB) expose le dashboard et l'API. Chaque poste reçoit, via une commande unique générée par `deploy.php`, un **agent bash** qui s'auto-installe et envoie ses métriques toutes les heures.
+**Principe :** un serveur central (PHP-FPM + MariaDB) expose le dashboard et l'API. Chaque poste reçoit, via une commande unique générée par `deploy.php`, un **agent** (bash sous macOS/Linux, PowerShell sous Windows) qui s'auto-installe et envoie ses métriques toutes les heures.
 
 ---
 
@@ -165,7 +165,14 @@ sudo bash -c "$(curl -fsSL 'https://votre-serveur/deploy.php?key=CLE_CLIENT')"
 curl -fsSL 'http://votre-serveur:8083/deploy.php?key=CLE_CLIENT' | bash
 ```
 
-L'agent s'enrôle automatiquement, détecte l'OS et commence à remonter ses métriques. Aucune dépendance lourde — du bash portable testé sur macOS 12+, Debian, RHEL et XCP-ng.
+```powershell
+# Windows (PowerShell en administrateur)
+powershell -ExecutionPolicy Bypass -Command "& {[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-Expression (New-Object Net.WebClient).DownloadString('https://votre-serveur/deploy.php?key=CLE_CLIENT&os=win')}"
+```
+
+L'agent s'enrôle automatiquement et remonte ses métriques toutes les heures :
+- **macOS / Linux** — script bash portable (testé macOS 12+, Debian, RHEL, XCP-ng).
+- **Windows** — agent PowerShell (`agent.ps1`) installé en **service** (démarrage automatique).
 
 ---
 
