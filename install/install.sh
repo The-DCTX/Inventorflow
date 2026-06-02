@@ -267,13 +267,16 @@ mysql -u "${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" \
     -e "UPDATE app_settings SET setting_value='${APP_URL}' WHERE setting_key='app_url';"
 ok "SQL importé et configuré"
 
-# 4. Déploiement fichiers (depuis le dossier source app/)
+# 4. Déploiement fichiers (depuis la racine du dépôt, parent de install/)
 log "--- Déploiement de l'application..."
-APP_SRC="${SCRIPT_DIR}/../app"
-[[ ! -d "$APP_SRC" ]] && fail "Dossier source introuvable : $APP_SRC"
+APP_SRC="$(cd "${SCRIPT_DIR}/.." && pwd)"
+[[ ! -f "$APP_SRC/index.php" ]] && fail "Source de l'application introuvable (index.php absent dans $APP_SRC)"
 [[ -d "${INSTALL_DIR}" ]] && mv "${INSTALL_DIR}" "${INSTALL_DIR}.bak.$(date +%s)"
 mkdir -p "${INSTALL_DIR}"
-cp -a "$APP_SRC/." "${INSTALL_DIR}/"
+tar -C "$APP_SRC" \
+    --exclude='./install' --exclude='./.git' --exclude='./.github' \
+    --exclude='./README.md' --exclude='./LICENSE' --exclude='./.gitignore' \
+    -cf - . | tar -C "${INSTALL_DIR}" -xf -
 
 # Config DB
 cat > "${INSTALL_DIR}/config/db.php" << PHP
