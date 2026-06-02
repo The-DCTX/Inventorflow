@@ -32,11 +32,31 @@
 
 > Dark mode soigné (OLED), interface en français, zéro framework lourd — rapide et auto-hébergeable sur un simple serveur Debian/Ubuntu.
 
-<!-- 📸 Ajoutez vos captures d'écran ici :
 <div align="center">
-  <img src="docs/screenshot-dashboard.png" width="80%" alt="Tableau de bord">
+  <img src="docs/dashboard.png" alt="Tableau de bord InventorFlow" width="92%">
+  <br><sub><em>Tableau de bord — vue d'ensemble du parc</em></sub>
 </div>
--->
+
+---
+
+## 📸 Captures d'écran
+
+<div align="center">
+
+**Parc informatique** — inventaire multi-OS, sélection multiple & attribution de licences
+<img src="docs/parc.png" alt="Parc informatique" width="92%">
+
+<br>
+
+**Supervision temps réel** — CPU, RAM, disque, température, alertes de sécurité
+<img src="docs/supervision.png" alt="Supervision" width="92%">
+
+<br>
+
+**Gestion des licences** — conformité, sièges, renouvellements, marge
+<img src="docs/licences.png" alt="Gestion des licences" width="92%">
+
+</div>
 
 ---
 
