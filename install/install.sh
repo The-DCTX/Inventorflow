@@ -245,6 +245,23 @@ if ! systemctl is-active mariadb >/dev/null 2>&1; then
 fi
 systemctl enable mariadb >/dev/null 2>&1
 
+# ── GARDE-FOU ANTI-DESTRUCTION ────────────────────────────────────────────────
+# install.sh réimporte install.sql, qui fait DROP TABLE sur tout le schéma.
+# Si une install InventorFlow existe déjà (table 'clients' présente) et qu'on
+# n'a pas explicitement choisi l'écrasement, on REFUSE pour ne pas effacer les
+# données. La mise à jour se fait via maintenance/update.sh, pas via install.sh.
+if [ "$ERASE_DB" -ne 1 ] && \
+   mysql -N -e "SELECT 1 FROM information_schema.tables WHERE table_schema='${DB_NAME}' AND table_name='clients' LIMIT 1" 2>/dev/null | grep -q 1; then
+    fail "Installation InventorFlow déjà présente (données dans la base '${DB_NAME}').
+  install.sh est réservé aux installations NEUVES : il réimporte le schéma
+  (DROP de toutes les tables) et EFFACERAIT vos données.
+
+    → Pour METTRE À JOUR sans rien perdre :   sudo bash maintenance/update.sh
+    → Pour activer les mises à jour en 1 clic : sudo bash maintenance/enable-oneclick.sh
+    → Pour réinstaller en écrasant VOLONTAIREMENT : relancez SANS -y et choisissez
+      '1) Tout écraser' (une sauvegarde mysqldump est tentée avant)."
+fi
+
 log "--- Création base de données..."
 mysql --connect-timeout=10 << SQL
 CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
