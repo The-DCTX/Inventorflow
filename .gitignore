@@ -1,0 +1,19 @@
+# Config locale générée à l'installation
+config/db.php
+config/app.php
+
+# Sauvegardes, logs, données locales
+backups/
+*.bak
+*.bak.*
+*.log
+*.sqlite
+data/
+
+# Binaire Composer (outil, pas l'application)
+/composer
+/composer.phar
+
+# macOS
+.DS_Store
+._*
