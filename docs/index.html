@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InventorFlow — Gestion de parc informatique multi-client</title>
+<meta name="description" content="Plateforme web auto-hébergée de gestion de parc IT : inventaire matériel, supervision temps réel, licences et facturation récurrente. Multi-client, agent bash universel, dark mode OLED.">
+<meta property="og:title" content="InventorFlow">
+<meta property="og:description" content="Inventaire, supervision temps réel, licences & facturation — une seule application auto-hébergée pour piloter tout votre parc IT.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://the-dctx.github.io/Inventorflow/">
+<meta property="og:image" content="https://the-dctx.github.io/Inventorflow/dashboard.png">
+<meta name="theme-color" content="#07090f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-base:#07090f; --bg-surface:#0d1220; --bg-elevated:#121a2e; --bg-card:#121a2e;
+  --bg-hover:#162035; --border-subtle:rgba(255,255,255,.05); --border:rgba(255,255,255,.09);
+  --border-active:rgba(255,255,255,.18); --text-primary:#e8edf8; --text-secondary:#7a8499;
+  --text-muted:#3d4760; --accent:#4f7ef8; --accent-hover:#6b94ff; --accent-dim:rgba(79,126,248,.15);
+  --accent-glow:rgba(79,126,248,.3); --success:#22d3a0; --warning:#f5a623; --danger:#ff4757;
+  --purple:#9d7bff; --cyan:#38d9f5; --os-mac:#a78bfa; --os-win:#38d9f5; --os-lin:#fb923c;
+  --radius:14px; --radius-sm:8px; --maxw:1140px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
+  background:var(--bg-base); color:var(--text-primary);
+  line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+body::before{
+  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(900px 600px at 75% -10%, rgba(79,126,248,.14), transparent 60%),
+    radial-gradient(700px 500px at 10% 8%, rgba(157,123,255,.10), transparent 55%),
+    radial-gradient(800px 600px at 50% 110%, rgba(56,217,245,.06), transparent 60%);
+}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+.mono{font-family:'JetBrains Mono',monospace}
+.accent{color:var(--accent)}
+
+/* ---------- Nav ---------- */
+nav{
+  position:sticky; top:0; z-index:50; backdrop-filter:blur(14px);
+  background:rgba(7,9,15,.72); border-bottom:1px solid var(--border-subtle);
+}
+.nav-inner{display:flex;align-items:center;gap:28px;height:64px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:-.02em}
+.brand .logo{
+  width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  box-shadow:0 4px 18px var(--accent-glow);
+}
+.brand .logo svg{width:18px;height:18px;color:#fff}
+.nav-links{display:flex;gap:26px;margin-left:auto;font-size:14.5px;font-weight:500;color:var(--text-secondary)}
+.nav-links a:hover{color:var(--text-primary)}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14.5px;
+  padding:10px 18px;border-radius:10px;border:1px solid transparent;cursor:pointer;
+  transition:.18s ease; white-space:nowrap;
+}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 6px 22px var(--accent-glow)}
+.btn-primary:hover{background:var(--accent-hover);transform:translateY(-1px)}
+.btn-ghost{border-color:var(--border);color:var(--text-primary);background:rgba(255,255,255,.02)}
+.btn-ghost:hover{border-color:var(--border-active);background:var(--bg-hover)}
+.btn svg{width:17px;height:17px}
+@media(max-width:820px){.nav-links{display:none}}
+
+/* ---------- Hero ---------- */
+header{padding:96px 0 70px;text-align:center}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;
+  color:var(--accent);background:var(--accent-dim);border:1px solid rgba(79,126,248,.25);
+  padding:6px 14px;border-radius:999px;margin-bottom:26px;letter-spacing:.01em;
+}
+.eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 10px var(--success)}
+h1{
+  font-size:clamp(38px,6vw,68px);line-height:1.04;font-weight:800;letter-spacing:-.03em;
+  max-width:920px;margin:0 auto;
+}
+h1 .grad{background:linear-gradient(120deg,var(--accent),var(--purple) 55%,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{
+  font-size:clamp(16px,2.2vw,20px);color:var(--text-secondary);max-width:620px;
+  margin:24px auto 0;font-weight:400;
+}
+.hero-cta{display:flex;gap:14px;justify-content:center;margin-top:36px;flex-wrap:wrap}
+.badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:40px}
+.badge{
+  font-size:12.5px;font-weight:600;color:var(--text-secondary);
+  border:1px solid var(--border);background:var(--bg-surface);
+  padding:6px 13px;border-radius:8px;
+}
+.badge b{color:var(--text-primary)}
+
+/* ---------- Hero shot ---------- */
+.hero-shot{margin:60px auto 0;max-width:980px;position:relative}
+.hero-shot .frame{
+  border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
+  box-shadow:0 40px 120px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.02);
+  background:var(--bg-surface);
+}
+.hero-shot img{display:block;width:100%}
+.hero-shot::after{
+  content:'';position:absolute;inset:-1px -1px auto;height:140px;
+  background:linear-gradient(180deg,transparent,var(--bg-base));bottom:-1px;top:auto;
+  pointer-events:none;
+}
+
+/* ---------- Sections ---------- */
+section{padding:80px 0}
+.section-head{text-align:center;max-width:680px;margin:0 auto 54px}
+.section-head .tag{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.section-head h2{font-size:clamp(28px,4vw,42px);font-weight:800;letter-spacing:-.025em;margin:12px 0 14px;line-height:1.1}
+.section-head p{color:var(--text-secondary);font-size:17px}
+
+/* stats strip */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;border-top:1px solid var(--border-subtle);border-bottom:1px solid var(--border-subtle);padding:38px 0}
+.stat{text-align:center}
+.stat .num{font-size:34px;font-weight:800;letter-spacing:-.02em;background:linear-gradient(120deg,var(--accent),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat .lbl{color:var(--text-secondary);font-size:14px;margin-top:4px}
+@media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr);gap:30px 18px}}
+
+/* features */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:920px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.grid{grid-template-columns:1fr}}
+.card{
+  background:linear-gradient(180deg,var(--bg-elevated),var(--bg-surface));
+  border:1px solid var(--border);border-radius:var(--radius);padding:26px 24px;
+  transition:.2s ease;position:relative;overflow:hidden;
+}
+.card:hover{border-color:var(--border-active);transform:translateY(-3px);box-shadow:0 18px 40px -20px rgba(0,0,0,.6)}
+.card .ico{
+  width:46px;height:46px;border-radius:12px;display:grid;place-items:center;margin-bottom:18px;
+  background:var(--accent-dim);color:var(--accent);
+}
+.card .ico svg{width:23px;height:23px}
+.card h3{font-size:18px;font-weight:700;letter-spacing:-.01em;margin-bottom:8px}
+.card p{color:var(--text-secondary);font-size:14.5px}
+.card ul{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.card li{font-size:13.5px;color:var(--text-secondary);padding-left:18px;position:relative}
+.card li::before{content:'';position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+/* showcase / gallery */
+.shot-tabs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:26px}
+.shot-tab{
+  font-size:14px;font-weight:600;color:var(--text-secondary);padding:9px 18px;
+  border-radius:10px;border:1px solid var(--border);background:var(--bg-surface);cursor:pointer;transition:.16s;
+}
+.shot-tab:hover{color:var(--text-primary);border-color:var(--border-active)}
+.shot-tab.active{color:#fff;background:var(--accent);border-color:var(--accent);box-shadow:0 6px 18px var(--accent-glow)}
+.shot-stage{
+  border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--bg-surface);
+  box-shadow:0 40px 100px -40px rgba(0,0,0,.8);position:relative;cursor:zoom-in;
+}
+.shot-stage img{display:block;width:100%}
+.shot-cap{text-align:center;color:var(--text-secondary);font-size:14px;margin-top:16px}
+.shot-cap b{color:var(--text-primary)}
+
+/* architecture */
+.arch{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:10px}
+@media(max-width:820px){.arch{grid-template-columns:1fr;gap:18px}.arch .arrow{transform:rotate(90deg)}}
+.arch-node{
+  background:linear-gradient(180deg,var(--bg-elevated),var(--bg-surface));border:1px solid var(--border);
+  border-radius:var(--radius);padding:24px;text-align:center;
+}
+.arch-node .ico{width:42px;height:42px;border-radius:11px;margin:0 auto 12px;display:grid;place-items:center;background:var(--accent-dim);color:var(--accent)}
+.arch-node .ico svg{width:22px;height:22px}
+.arch-node h4{font-size:16px;font-weight:700;margin-bottom:4px}
+.arch-node p{font-size:13px;color:var(--text-secondary)}
+.arch .arrow{color:var(--accent);display:grid;place-items:center}
+.arch .arrow svg{width:26px;height:26px}
+.os-pills{display:flex;gap:6px;justify-content:center;margin-top:10px}
+.os-pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px}
+.os-mac{color:var(--os-mac);background:rgba(167,139,250,.12)}
+.os-win{color:var(--os-win);background:rgba(56,217,245,.12)}
+.os-lin{color:var(--os-lin);background:rgba(251,146,60,.12)}
+
+/* code block */
+.code{
+  background:var(--bg-base);border:1px solid var(--border);border-radius:var(--radius);
+  padding:22px 24px;font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.9;
+  color:var(--text-secondary);overflow-x:auto;margin-top:30px;
+}
+.code .c{color:var(--text-muted)}
+.code .g{color:var(--success)}
+.code .a{color:var(--accent)}
+
+/* stack table */
+.stack{max-width:760px;margin:0 auto;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.stack-row{display:grid;grid-template-columns:200px 1fr;padding:16px 24px;border-bottom:1px solid var(--border-subtle);font-size:15px}
+.stack-row:last-child{border-bottom:none}
+.stack-row .k{color:var(--text-secondary);font-weight:600}
+.stack-row .v{color:var(--text-primary)}
+@media(max-width:560px){.stack-row{grid-template-columns:1fr;gap:2px}}
+
+/* cta */
+.cta-box{
+  text-align:center;border:1px solid var(--border);border-radius:20px;padding:60px 30px;
+  background:radial-gradient(700px 300px at 50% -20%,rgba(79,126,248,.16),transparent),linear-gradient(180deg,var(--bg-elevated),var(--bg-surface));
+}
+.cta-box h2{font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-.025em;margin-bottom:14px}
+.cta-box p{color:var(--text-secondary);font-size:17px;max-width:520px;margin:0 auto 30px}
+
+/* footer */
+footer{border-top:1px solid var(--border-subtle);padding:42px 0;color:var(--text-secondary);font-size:14px}
+.foot-inner{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}
+.foot-inner a:hover{color:var(--text-primary)}
+.disclaimer{font-size:12.5px;color:var(--text-muted);max-width:var(--maxw);margin:22px auto 0;padding:0 24px;line-height:1.6}
+
+/* lightbox */
+.lb{position:fixed;inset:0;z-index:100;background:rgba(3,5,10,.92);backdrop-filter:blur(8px);display:none;place-items:center;padding:30px;cursor:zoom-out}
+.lb.open{display:grid}
+.lb img{max-width:95vw;max-height:92vh;border-radius:12px;border:1px solid var(--border-active);box-shadow:0 40px 120px rgba(0,0,0,.7)}
+
+/* reveal */
+.reveal{opacity:0;transform:translateY(22px);transition:.7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <a href="#" class="brand">
+      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+      InventorFlow
+    </a>
+    <div class="nav-links">
+      <a href="#features">Fonctionnalités</a>
+      <a href="#apercu">Aperçu</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#install">Installation</a>
+    </div>
+    <a class="btn btn-primary" href="https://github.com/The-DCTX/Inventorflow" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.8-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+      GitHub
+    </a>
+  </div>
+</nav>
+
+<header class="wrap">
+  <div class="eyebrow"><span class="dot"></span>Auto-hébergé · Open source AGPL-3.0</div>
+  <h1>Pilotez tout votre parc IT<br><span class="grad">d'un seul écran.</span></h1>
+  <p class="sub">Inventaire matériel, supervision temps réel, licences logicielles et facturation récurrente — multi-client, dans une seule application web auto-hébergée.</p>
+  <div class="hero-cta">
+    <a class="btn btn-primary" href="https://github.com/The-DCTX/Inventorflow" target="_blank" rel="noopener">Voir sur GitHub →</a>
+    <a class="btn btn-ghost" href="#apercu">Découvrir l'interface</a>
+  </div>
+  <div class="badges">
+    <span class="badge"><b>PHP</b> 8.4</span>
+    <span class="badge"><b>MariaDB</b> 10+</span>
+    <span class="badge"><b>Vanilla</b> JS</span>
+    <span class="badge">Agent <b>bash</b> universel</span>
+    <span class="badge"><b>Debian</b> / Ubuntu</span>
+  </div>
+  <div class="hero-shot reveal">
+    <div class="frame"><img src="dashboard.png" alt="Tableau de bord InventorFlow" loading="eager"></div>
+  </div>
+</header>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat"><div class="num">3 OS</div><div class="lbl">macOS · Windows · Linux</div></div>
+      <div class="stat"><div class="num">∞</div><div class="lbl">Clients & postes</div></div>
+      <div class="stat"><div class="num">1 cmd</div><div class="lbl">Déploiement de l'agent</div></div>
+      <div class="stat"><div class="num">0</div><div class="lbl">Framework lourd</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="tag">Fonctionnalités</div>
+      <h2>Tout le cycle de vie du parc, centralisé</h2>
+      <p>De l'inventaire à la facturation, pensé pour les prestataires IT et MSP qui gèrent plusieurs clients.</p>
+    </div>
+    <div class="grid">
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <h3>Inventaire du parc</h3>
+        <p>CRUD complet des postes macOS / Windows / Linux avec historique d'assignation.</p>
+        <ul><li>Série, CPU, RAM, stockage, IP, MAC</li><li>Statuts actif / stock / réparation / retiré</li><li>Nommage normalisé par templates + export CSV</li></ul>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Multi-client</h3>
+        <p>Sélecteur de client en barre latérale, données isolées par <span class="mono accent">client_id</span> sur toutes les vues.</p>
+        <ul><li>Clé de déploiement par client</li><li>Cloisonnement total des données</li></ul>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+        <h3>Supervision temps réel</h3>
+        <p>Agent bash universel qui remonte CPU, RAM, disque, load, uptime chaque heure.</p>
+        <ul><li>Température CPU multi-plateforme</li><li>Détection brute-force SSH + whitelist LAN</li><li>Heartbeat & alertes de sécurité</li></ul>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.6 7.6a5 5 0 1 1-7.1 7.1 5 5 0 0 1 7.1-7.1zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3"/></svg></div>
+        <h3>Licences logicielles</h3>
+        <p>Catalogue HT / TTC avec prix d'achat, revente et marge.</p>
+        <ul><li>Attribution par poste ou utilisateur</li><li>Barre de conformité (sièges utilisés)</li><li>Alertes de renouvellement J-90 / J-30</li></ul>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <h3>Facturation</h3>
+        <p>Abonnements client ↔ service calculés automatiquement selon les ressources actives.</p>
+        <ul><li>Services par poste, utilisateur, forfait, horaire</li><li>MRR / ARR et marge nette en continu</li></ul>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg></div>
+        <h3>Pilotage & rapports</h3>
+        <p>Tableau de bord à widgets personnalisables et rapports PDF double version.</p>
+        <ul><li>Version interne (marges) / client (masquées)</li><li>Rôles superadmin / admin / viewer</li><li>Assistant d'offboarding employé</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="apercu" style="background:linear-gradient(180deg,transparent,rgba(13,18,32,.5),transparent)">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="tag">Aperçu</div>
+      <h2>L'interface, en vrai</h2>
+      <p>Dark mode OLED soigné, interface française, zéro temps de chargement. Cliquez pour explorer chaque écran.</p>
+    </div>
+    <div class="reveal">
+      <div class="shot-tabs">
+        <button class="shot-tab active" data-shot="dashboard.png" data-cap="<b>Tableau de bord</b> — widgets, distribution OS et activité récente">Tableau de bord</button>
+        <button class="shot-tab" data-shot="parc.png" data-cap="<b>Parc informatique</b> — inventaire filtrable, badges OS, assignations">Parc</button>
+        <button class="shot-tab" data-shot="supervision.png" data-cap="<b>Supervision</b> — métriques temps réel, température et heartbeat">Supervision</button>
+        <button class="shot-tab" data-shot="licences.png" data-cap="<b>Licences</b> — conformité, renouvellements et coûts">Licences</button>
+      </div>
+      <div class="shot-stage" id="stage"><img id="stageImg" src="dashboard.png" alt="Aperçu de l'interface InventorFlow"></div>
+      <p class="shot-cap" id="stageCap"><b>Tableau de bord</b> — widgets, distribution OS et activité récente</p>
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="tag">Architecture</div>
+      <h2>Un serveur central, des agents légers</h2>
+      <p>Chaque poste reçoit, via une commande unique, un agent bash qui s'auto-installe et envoie ses métriques toutes les heures.</p>
+    </div>
+    <div class="arch reveal">
+      <div class="arch-node">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <h4>Parc supervisé</h4>
+        <p>Postes clients</p>
+        <div class="os-pills"><span class="os-pill os-mac">macOS</span><span class="os-pill os-win">Windows</span><span class="os-pill os-lin">Linux</span></div>
+      </div>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="arch-node">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></svg></div>
+        <h4>Serveur InventorFlow</h4>
+        <p>Apache/nginx · PHP-FPM · MariaDB</p>
+      </div>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="arch-node">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <h4>Dashboard web</h4>
+        <p>Admin & clients</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="install" style="background:linear-gradient(180deg,transparent,rgba(13,18,32,.5),transparent)">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="tag">Installation</div>
+      <h2>Déployé en quelques minutes</h2>
+      <p>Installeur interactif et idempotent sur Debian 11+ / Ubuntu 22.04+ : détection de l'OS, dépendances, PHP-FPM, base de données, vhost et compte admin.</p>
+    </div>
+    <div class="code reveal">
+      <span class="c"># 1. Installer le serveur</span><br>
+      <span class="g">unzip</span> inventorflow-deploy.zip -d if-install<br>
+      <span class="g">cd</span> if-install &amp;&amp; <span class="g">sudo</span> bash install.sh<br><br>
+      <span class="c"># 2. Déployer l'agent sur un poste (clé générée par client)</span><br>
+      <span class="g">curl</span> -fsSL <span class="a">'https://votre-serveur/deploy.php?key=CLE_CLIENT'</span> | bash
+    </div>
+  </div>
+</section>
+
+<section id="stack">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="tag">Stack technique</div>
+      <h2>Léger, sobre, sans framework</h2>
+    </div>
+    <div class="stack reveal">
+      <div class="stack-row"><span class="k">Backend</span><span class="v">PHP 8.4 (PDO, sans framework)</span></div>
+      <div class="stack-row"><span class="k">Base de données</span><span class="v">MariaDB / MySQL (utf8mb4)</span></div>
+      <div class="stack-row"><span class="k">Frontend</span><span class="v">HTML + CSS (dark mode OLED) + Vanilla JS</span></div>
+      <div class="stack-row"><span class="k">Serveur web</span><span class="v">Apache2 ou nginx + PHP-FPM</span></div>
+      <div class="stack-row"><span class="k">Agent</span><span class="v">Bash universel (macOS / Linux)</span></div>
+      <div class="stack-row"><span class="k">Rapports</span><span class="v">Génération PDF interne / client</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="cta-box reveal">
+      <h2>Tout voir, d'un seul écran.</h2>
+      <p>InventorFlow est open source sous licence AGPL-3.0. Auto-hébergez-le sur un simple serveur Debian ou Ubuntu.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="https://github.com/The-DCTX/Inventorflow" target="_blank" rel="noopener">Cloner le dépôt</a>
+        <a class="btn btn-ghost" href="https://github.com/The-DCTX/Inventorflow/blob/main/README.md" target="_blank" rel="noopener">Lire la documentation</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <div class="brand" style="font-size:16px">
+      <span class="logo" style="width:26px;height:26px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+      InventorFlow
+    </div>
+    <div>© 2026 <b style="color:var(--text-primary)">DCTX</b> · Licence GNU AGPL-3.0</div>
+    <div style="display:flex;gap:20px">
+      <a href="https://github.com/The-DCTX/Inventorflow" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/The-DCTX/Inventorflow/blob/main/LICENSE" target="_blank" rel="noopener">Licence</a>
+    </div>
+  </div>
+  <p class="disclaimer">InventorFlow est fourni « tel quel », sans aucune garantie. L'usage commercial sans les obligations de l'AGPL fait l'objet d'une licence dédiée — contactez DCTX. Les données affichées dans les captures sont fictives et fournies à titre de démonstration.</p>
+</footer>
+
+<div class="lb" id="lb"><img id="lbImg" src="" alt="Aperçu agrandi"></div>
+
+<script>
+// Screenshot tabs
+const stageImg=document.getElementById('stageImg');
+const stageCap=document.getElementById('stageCap');
+document.querySelectorAll('.shot-tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.shot-tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    stageImg.style.opacity=0;
+    setTimeout(()=>{stageImg.src=t.dataset.shot;stageCap.innerHTML=t.dataset.cap;stageImg.style.opacity=1;},120);
+  });
+});
+stageImg.style.transition='opacity .25s ease';
+
+// Lightbox
+const lb=document.getElementById('lb'),lbImg=document.getElementById('lbImg');
+document.getElementById('stage').addEventListener('click',()=>{lbImg.src=stageImg.src;lb.classList.add('open')});
+lb.addEventListener('click',()=>lb.classList.remove('open'));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')lb.classList.remove('open')});
+
+// Reveal on scroll
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
