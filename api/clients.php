@@ -34,6 +34,7 @@ if ($method === 'POST') {
     if (is_superadmin()) {
         $_SESSION['selected_client_id'] = $id;
     }
+    cf_save('client', $id, $raw);
     audit_log('client_create', 'client', $id);
     json_success(['id' => $id], 'Client créé');
 }
@@ -50,6 +51,7 @@ if ($method === 'PUT') {
     $pdo->prepare('UPDATE clients SET name=?, code=?, contact_name=?, contact_email=?, phone=?, address=?, active=? WHERE id=?')
         ->execute([trim($raw['name'] ?? ''), $code, $raw['contact_name'] ?: null, $raw['contact_email'] ?: null, $raw['phone'] ?: null, $raw['address'] ?: null, (int)($raw['active'] ?? 1), $id]);
 
+    cf_save('client', $id, $raw);
     audit_log('client_update', 'client', $id);
     json_success([], 'Client mis à jour');
 }

@@ -34,7 +34,9 @@ if ($method === 'POST') {
             $raw['billing_period']??'annual',
             $raw['purchase_date']?:null, $raw['renewal_date']?:null,
             $raw['product_key']?:null, $raw['vendor_contact']?:null, $raw['notes']?:null]);
-    json_success(['id' => (int)$pdo->lastInsertId()], 'Licence créée');
+    $lid = (int)$pdo->lastInsertId();
+    cf_save('license', $lid, $raw);
+    json_success(['id' => $lid], 'Licence créée');
 }
 
 if ($method === 'PUT') {
@@ -49,6 +51,7 @@ if ($method === 'PUT') {
             $raw['purchase_date']?:null, $raw['renewal_date']?:null,
             $raw['product_key']?:null, $raw['vendor_contact']?:null, $raw['notes']?:null,
             $id, $client_id]);
+    cf_save('license', $id, $raw);
     json_success([], 'Licence mise à jour');
 }
 

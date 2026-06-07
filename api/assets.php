@@ -11,7 +11,10 @@ if ($method === 'GET') {
         FROM assets a LEFT JOIN employees e ON a.assigned_to=e.id LEFT JOIN departments d ON a.department_id=d.id
         WHERE a.client_id=? ORDER BY a.created_at DESC');
     $stmt->execute([$client_id]);
-    json_success($stmt->fetchAll());
+    $rows = $stmt->fetchAll();
+    foreach ($rows as &$r) { $r['custom_fields'] = cf_values('asset', (int)$r['id']); }
+    unset($r);
+    json_success($rows);
 }
 
 $raw = json_decode(file_get_contents('php://input'), true) ?? $_POST;
@@ -55,6 +58,7 @@ if ($method === 'POST') {
     }
 
     auto_assign_monitoring($client_id);
+    cf_save('asset', $id, $raw);
     json_success(["id" => $id], "Poste créé");
 }
 
@@ -107,6 +111,7 @@ if ($method === 'PUT') {
         log_asset_action($id, 'status_change', $old['status'], $raw['status']);
     }
 
+    cf_save('asset', $id, $raw);
     json_success([], 'Poste mis à jour');
 }
 

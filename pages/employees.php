@@ -658,6 +658,7 @@ render_icons();
                         <option value="0">Inactif</option>
                     </select>
                 </div>
+                <?= cf_render_inputs('employee') ?>
             </form>
         </div>
         <div class="modal-footer">
@@ -696,6 +697,7 @@ function editEmp(id) {
         const el = document.getElementById(elId);
         if (el) el.value = e[key] ?? '';
     });
+    if (id) api(`${APP_URL}/api/custom-fields.php?action=values&entity=employee&id=${id}`,{method:'GET'}).then(r=>cfFill('modal-emp', r.data||{})).catch(()=>{});
     Modal.open('modal-emp');
 }
 

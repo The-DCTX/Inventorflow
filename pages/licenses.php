@@ -511,6 +511,7 @@ $UNIT_SHORT = ['per_device'=>'/poste','per_user'=>'/util.','flat'=>'','per_hour'
     <label>Notes</label>
     <textarea name="notes" id="lic-notes" class="form-control" rows="2"></textarea>
 </div>
+<?= cf_render_inputs('license') ?>
 </form>
 </div>
 <div class="modal-footer">
@@ -700,6 +701,7 @@ function openLicModal(id) {
         Object.entries(f).forEach(([el,k])=>{ const e=document.getElementById(el); if(e) e.value=l[k]||''; });
         updateMarginPreview();
     }
+    if (id) api(`${APP_URL}/api/custom-fields.php?action=values&entity=license&id=${id}`,{method:'GET'}).then(r=>cfFill('modal-lic', r.data||{})).catch(()=>{});
     Modal.open('modal-lic');
 }
 

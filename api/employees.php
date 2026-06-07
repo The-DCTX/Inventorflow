@@ -19,7 +19,9 @@ if ($method === 'POST') {
         $raw['department_id'] ?: null, $raw['position'] ?: null,
         isset($raw['active']) ? (int)$raw['active'] : 1,
     ]);
-    json_success(['id' => (int)$pdo->lastInsertId()], 'Utilisateur créé');
+    $eid = (int)$pdo->lastInsertId();
+    cf_save('employee', $eid, $raw);
+    json_success(['id' => $eid], 'Utilisateur créé');
 }
 
 if ($method === 'PUT') {
@@ -47,6 +49,7 @@ if ($method === 'PUT') {
         _offboard_employee($pdo, $id, 'Désactivation utilisateur');
     }
 
+    cf_save('employee', $id, $raw);
     json_success([], 'Utilisateur mis à jour');
 }
 

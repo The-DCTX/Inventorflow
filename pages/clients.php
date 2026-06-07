@@ -151,6 +151,7 @@ render_icons();
                     <label>Adresse</label>
                     <textarea name="address" id="client-address" class="form-control" rows="2"></textarea>
                 </div>
+                <?= cf_render_inputs('client') ?>
             </form>
         </div>
         <div class="modal-footer">
@@ -430,6 +431,7 @@ function editClient(id) {
         const el = document.getElementById(elId);
         if (el) el.value = c[key] ?? '';
     });
+    if (id) api(`${APP_URL}/api/custom-fields.php?action=values&entity=client&id=${id}`,{method:'GET'}).then(r=>cfFill('modal-client', r.data||{})).catch(()=>{});
     Modal.open('modal-client');
 }
 

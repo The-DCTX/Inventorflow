@@ -115,6 +115,26 @@ window.api = async function(url, options = {}) {
   }
 };
 
+// Champs personnalisés : remplir / collecter les inputs name="cf_*"
+window.cfFill = function(scope, values) {
+  const el = typeof scope === 'string' ? document.getElementById(scope) : scope;
+  if (!el) return;
+  el.querySelectorAll('[name^="cf_"]').forEach(i => {
+    const key = i.name.slice(3);
+    const v = values && values[key] != null ? values[key] : '';
+    if (i.type === 'checkbox') i.checked = (v == 1 || v === '1' || v === true);
+    else i.value = v;
+  });
+};
+window.cfCollect = function(scope) {
+  const el = typeof scope === 'string' ? document.getElementById(scope) : scope;
+  const out = {};
+  if (el) el.querySelectorAll('[name^="cf_"]').forEach(i => {
+    out[i.name] = i.type === 'checkbox' ? (i.checked ? 1 : 0) : i.value;
+  });
+  return out;
+};
+
 // ── TABLE SORT ─────────────────────────────────────
 function initTableSort(tableId) {
   const table = document.getElementById(tableId);

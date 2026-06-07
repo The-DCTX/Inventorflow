@@ -426,6 +426,7 @@ if (!$has_any && !$lic_cnt): ?>
                     <label>Notes</label>
                     <textarea name="notes" id="asset-notes" class="form-control" rows="3" placeholder="Informations complémentaires…"></textarea>
                 </div>
+                <?= cf_render_inputs('asset') ?>
             </form>
         </div>
         <div class="modal-footer">
@@ -721,6 +722,7 @@ function editAsset(id) {
         const el = document.getElementById(elId);
         if (el) el.value = a[key] || '';
     });
+    cfFill('modal-asset', a.custom_fields || {});
     Modal.open('modal-asset');
 }
 

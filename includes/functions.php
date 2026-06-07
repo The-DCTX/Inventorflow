@@ -249,6 +249,8 @@ function audit_log(string $action, ?string $entity = null, ?int $entity_id = nul
     } catch (Throwable $e) { /* audit best-effort */ }
 }
 
+require_once __DIR__ . '/custom_fields.php';
+
 function time_ago(string $datetime): string {
     $diff = time() - strtotime($datetime);
     if ($diff < 60) return 'À l\'instant';
