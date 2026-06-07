@@ -157,22 +157,24 @@ function render_sidebar(string $active = ''): void {
             <?php endforeach; ?>
         </nav>
 
-        <div class="sidebar-footer">
-            <div class="user-info">
-                <div class="user-avatar"><?= strtoupper(substr($user['full_name'] ?? $user['username'], 0, 2)) ?></div>
-                <div class="user-details">
-                    <span class="user-name"><?= h($user['full_name'] ?? $user['username']) ?></span>
-                    <span class="user-role"><?= h($user['role']) ?></span>
+        <div class="sidebar-footer" style="flex-direction:column;align-items:stretch;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px">
+                <div class="user-info">
+                    <div class="user-avatar"><?= strtoupper(substr($user['full_name'] ?? $user['username'], 0, 2)) ?></div>
+                    <div class="user-details">
+                        <span class="user-name"><?= h($user['full_name'] ?? $user['username']) ?></span>
+                        <span class="user-role"><?= h($user['role']) ?></span>
+                    </div>
                 </div>
+                <a href="<?= APP_URL ?>/logout.php" class="logout-btn" title="<?= th('Déconnexion') ?>">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </a>
             </div>
-            <select onchange="setLanguage(this.value)" title="<?= th('Langue') ?>" style="background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;font-size:12px;padding:5px 8px;margin-right:8px;cursor:pointer">
+            <select onchange="setLanguage(this.value)" title="<?= th('Langue') ?>" style="width:100%;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;font-size:12px;padding:7px 10px;cursor:pointer">
                 <?php foreach (i18n_langs() as $lc => $ln): ?>
                 <option value="<?= $lc ?>" <?= current_lang() === $lc ? 'selected' : '' ?>><?= h($ln) ?></option>
                 <?php endforeach; ?>
             </select>
-            <a href="<?= APP_URL ?>/logout.php" class="logout-btn" title="<?= th('Déconnexion') ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            </a>
         </div>
     </div>
     <?php
