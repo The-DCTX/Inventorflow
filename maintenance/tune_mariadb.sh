@@ -30,4 +30,8 @@ echo "Config écrite dans /etc/mysql/mariadb.conf.d/99-inventorflow.cnf"
 echo "Redémarrage de MariaDB..."
 systemctl restart mariadb
 echo "Vérification buffer pool :"
-mysql -u inventorflow -pinventorflow2024! -e "SELECT @@innodb_buffer_pool_size/1024/1024/1024 as buffer_pool_gb, @@event_scheduler;" inventorflow
+CFG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/config/db.php"
+DB_USER=$(php -r "require '$CFG'; echo DB_USER;" 2>/dev/null)
+DB_PASS=$(php -r "require '$CFG'; echo DB_PASS;" 2>/dev/null)
+DB_NAME=$(php -r "require '$CFG'; echo DB_NAME;" 2>/dev/null)
+mysql -u "$DB_USER" -p"$DB_PASS" -e "SELECT @@innodb_buffer_pool_size/1024/1024/1024 as buffer_pool_gb, @@event_scheduler;" "$DB_NAME"

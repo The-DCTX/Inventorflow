@@ -10,9 +10,16 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    if ($username && $password && login($username, $password)) {
-        header('Location: ' . APP_URL . '/');
-        exit;
+    if ($username && $password) {
+        $result = login($username, $password);
+        if ($result === 'totp_required') {
+            header('Location: ' . APP_URL . '/login-totp.php');
+            exit;
+        }
+        if ($result === true) {
+            header('Location: ' . APP_URL . '/');
+            exit;
+        }
     }
     $error = 'Identifiants incorrects. Veuillez réessayer.';
 }

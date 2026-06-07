@@ -118,7 +118,7 @@ INSERT INTO `users` (`client_id`, `username`, `password`, `full_name`, `email`, 
 
 -- Demo client
 INSERT INTO `clients` (`name`, `code`, `contact_email`, `contact_name`) VALUES
-('Saguez & Partners', 'SAG', 'it@saguez.com', 'IT Admin');
+('ACME Corp (démo)', 'ACME', 'it@acme.example', 'IT Admin');
 
 INSERT INTO `departments` (`client_id`, `name`, `code`) VALUES
 (1, 'Informatique', 'IT'),

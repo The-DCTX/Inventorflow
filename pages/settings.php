@@ -32,6 +32,74 @@ render_icons();
 <?php render_topbar('Paramètres', 'Configuration du client'); ?>
 <main class="main-content" style="max-width:800px">
 
+<!-- ─── TOTP / 2FA — Mon compte (tous les utilisateurs) ─────────────────── -->
+<div class="card mb-24" id="card-totp-account">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Double authentification (2FA)</div>
+            <div class="card-subtitle">Sécurisez votre compte avec une application TOTP (Authenticator, Aegis, etc.)</div>
+        </div>
+        <div id="totp-status-badge"></div>
+    </div>
+    <div class="card-body">
+        <div id="totp-account-content">
+            <p style="color:var(--text-muted);font-size:13.5px">Chargement…</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Setup TOTP -->
+<div class="modal-backdrop" id="modal-totp-setup" style="display:none">
+<div class="modal" style="max-width:440px;width:100%">
+    <div class="modal-header">
+        <h2 class="modal-title">Configurer le TOTP</h2>
+        <button class="btn btn-ghost btn-icon" onclick="Modal.close('modal-totp-setup')"><svg><use href="#icon-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+        <p style="font-size:13.5px;color:var(--text-secondary);margin-bottom:16px">
+            Scannez ce QR code avec votre application (Authenticator, Aegis, Bitwarden…) puis entrez le code généré pour confirmer.
+        </p>
+        <div style="text-align:center;margin:16px 0">
+            <canvas id="totp-qr-canvas" style="border-radius:8px;border:1px solid var(--border)"></canvas>
+        </div>
+        <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-family:monospace;font-size:13px;text-align:center;margin-bottom:16px;word-break:break-all" id="totp-secret-display"></div>
+        <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Code de vérification</label>
+            <input type="text" id="totp-verify-input" class="form-control"
+                inputmode="numeric" maxlength="6" placeholder="000000"
+                style="font-family:monospace;font-size:18px;letter-spacing:.15em;text-align:center">
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="Modal.close('modal-totp-setup')">Annuler</button>
+        <button class="btn btn-primary" onclick="totpActivate()">
+            <svg><use href="#icon-check"/></svg> Activer
+        </button>
+    </div>
+</div>
+</div>
+
+<!-- Modal: Backup codes -->
+<div class="modal-backdrop" id="modal-totp-backup" style="display:none">
+<div class="modal" style="max-width:420px;width:100%">
+    <div class="modal-header">
+        <h2 class="modal-title">Codes de secours</h2>
+        <button class="btn btn-ghost btn-icon" onclick="Modal.close('modal-totp-backup')"><svg><use href="#icon-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+        <div style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:#f5a623;margin-bottom:16px">
+            <b>⚠ Copiez ces codes maintenant.</b> Ils ne seront plus affichés. Chaque code ne peut être utilisé qu'une seule fois.
+        </div>
+        <div id="backup-codes-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px"></div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="copyBackupCodes()">Copier tout</button>
+        <button class="btn btn-primary" onclick="Modal.close('modal-totp-backup')">Compris</button>
+    </div>
+</div>
+</div>
+
+
 <!-- SITE SETTINGS (superadmin only) -->
 <?php if (is_superadmin()): ?>
 <div class="card mb-24">
@@ -328,7 +396,132 @@ render_icons();
 </div>
 <?php endif; ?>
 
+
+<!-- ─── TOTP POLICY (superadmin) ─────────────────────────────────────────── -->
+<?php if (is_superadmin()): ?>
+<div class="card mb-24">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Politique TOTP globale</div>
+            <div class="card-subtitle">Définit si le TOTP est requis pour se connecter</div>
+        </div>
+    </div>
+    <div class="card-body">
+        <?php $totp_policy = app_setting('totp_policy','disabled'); ?>
+        <div style="display:flex;flex-direction:column;gap:10px" id="totp-policy-group">
+            <?php foreach ([
+                ['disabled',     'Désactivé',            'Aucun utilisateur ne doit configurer le TOTP.'],
+                ['optional',     'Optionnel',             'Chaque utilisateur peut activer le TOTP depuis ses paramètres. S\'il est activé, il sera requis à la connexion.'],
+                ['required_all', 'Obligatoire pour tous', 'Tout utilisateur ayant configuré son TOTP devra le saisir. Les comptes sans TOTP peuvent se connecter mais un bandeau les incite à le configurer.'],
+            ] as [$val, $label, $desc]): ?>
+            <label style="display:flex;align-items:flex-start;gap:12px;padding:14px;border:2px solid <?= $totp_policy===$val?'var(--accent)':'var(--border)' ?>;border-radius:var(--radius-sm);cursor:pointer;transition:border-color .15s" id="totp-opt-<?= $val ?>">
+                <input type="radio" name="totp_policy" value="<?= $val ?>" <?= $totp_policy===$val?'checked':'' ?> style="margin-top:3px;accent-color:var(--accent);flex-shrink:0" onchange="highlightTotpPolicy()">
+                <div>
+                    <div style="font-weight:600;font-size:14px"><?= $label ?></div>
+                    <div style="font-size:13px;color:var(--text-secondary);margin-top:3px"><?= $desc ?></div>
+                </div>
+            </label>
+            <?php endforeach; ?>
+        </div>
+        <div style="margin-top:16px">
+            <button class="btn btn-primary" onclick="saveTotpPolicy()">
+                <svg><use href="#icon-check"/></svg> Enregistrer la politique
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ─── LDAP / LDAPS ─────────────────────────────────────────────────────── -->
+<div class="card mb-24">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Annuaire LDAP / LDAPS</div>
+            <div class="card-subtitle">Authentifiez les utilisateurs via un Active Directory ou OpenLDAP</div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600">
+            <input type="checkbox" id="ldap_enabled" value="1" <?= app_setting('ldap_enabled','0')==='1'?'checked':'' ?> style="accent-color:var(--accent);width:16px;height:16px">
+            Activer LDAP
+        </label>
+    </div>
+    <div class="card-body" id="ldap-config-body" style="<?= app_setting('ldap_enabled','0')!=='1'?'opacity:.45;pointer-events:none':'' ?>">
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Hôte <span class="required">*</span></label>
+                <input type="text" id="ldap_host" class="form-control" placeholder="ldap.exemple.com" value="<?= h(app_setting('ldap_host')) ?>">
+            </div>
+            <div class="form-group" style="max-width:120px">
+                <label class="form-label">Port</label>
+                <input type="number" id="ldap_port" class="form-control" value="<?= h(app_setting('ldap_port','389')) ?>" min="1" max="65535">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Base DN <span class="required">*</span></label>
+            <input type="text" id="ldap_base_dn" class="form-control" placeholder="dc=exemple,dc=com" value="<?= h(app_setting('ldap_base_dn')) ?>">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">DN service account</label>
+                <input type="text" id="ldap_bind_dn" class="form-control" placeholder="cn=binduser,dc=exemple,dc=com" value="<?= h(app_setting('ldap_bind_dn')) ?>">
+                <div class="form-hint">Optionnel — nécessaire pour chercher le DN utilisateur</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Mot de passe service account</label>
+                <input type="password" id="ldap_bind_pass" class="form-control" placeholder="••••••••" value="<?= h(app_setting('ldap_bind_pass')) ?>">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Filtre utilisateur</label>
+            <input type="text" id="ldap_user_filter" class="form-control" value="<?= h(app_setting('ldap_user_filter','(sAMAccountName={username})')) ?>">
+            <div class="form-hint"><code>{username}</code> est remplacé par l'identifiant saisi. Exemples : <code>(uid={username})</code> pour OpenLDAP, <code>(sAMAccountName={username})</code> pour AD</div>
+        </div>
+
+        <div style="border-top:1px solid var(--border-subtle);padding-top:18px;margin-top:6px">
+            <div style="font-weight:600;font-size:14px;margin-bottom:12px">Sécurité TLS</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+                    <input type="checkbox" id="ldap_use_tls" value="1" <?= app_setting('ldap_use_tls','0')==='1'?'checked':'' ?> style="accent-color:var(--accent);width:15px;height:15px" onchange="onLdapTlsChange()">
+                    <span><b>StartTLS</b> — chiffrer la connexion après négociation (port 389)</span>
+                </label>
+                <div class="form-hint" style="margin-top:-6px">Pour LDAPS natif, utilisez le port <b>636</b> — StartTLS sera ignoré.</div>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+                    <input type="checkbox" id="ldap_cert_verify" value="1" <?= app_setting('ldap_cert_verify','1')!=='0'?'checked':'' ?> style="accent-color:var(--accent);width:15px;height:15px" onchange="onLdapCertVerifyChange()">
+                    <span>Vérifier le certificat TLS</span>
+                </label>
+            </div>
+
+            <div id="ldap-cert-block" style="margin-top:14px;<?= (app_setting('ldap_cert_verify','1')==='0')?'display:none':'' ?>">
+                <label class="form-label">Certificat CA (PEM) — facultatif</label>
+                <textarea id="ldap_cert_content" class="form-control" rows="5"
+                    style="font-family:monospace;font-size:12px;resize:vertical"
+                    placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"><?= h(app_setting('ldap_cert_content')) ?></textarea>
+                <div class="form-hint" style="margin-top:4px">
+                    Collez le certificat PEM de votre CA, ou laissez vide si votre certificat est signé par une CA reconnue.
+                    <label style="color:var(--accent);cursor:pointer;margin-left:8px" for="ldap-cert-file">Importer un fichier…</label>
+                    <input type="file" id="ldap-cert-file" accept=".pem,.crt,.cer" style="display:none" onchange="importCertFile(this)">
+                </div>
+                <div id="ldap-auto-cert-btn" style="margin-top:8px;display:none">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="autoFetchCert()">
+                        <svg width="14" height="14"><use href="#icon-wifi"/></svg>
+                        Récupérer le certificat automatiquement
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="saveLdapSettings()">
+                <svg><use href="#icon-check"/></svg> Enregistrer
+            </button>
+            <button class="btn btn-ghost" onclick="testLdap()" id="btn-test-ldap">
+                <svg><use href="#icon-wifi"/></svg> Tester la connexion
+            </button>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 </main>
+
 </div>
 
 <script>
@@ -526,6 +719,214 @@ async function testEmail() {
         toast('Email de test envoyé à ' + email, 'success');
     } catch(e) { /* error already toasted */ }
     finally { btn.disabled = false; btn.innerHTML = '<svg><use href="#icon-wifi"/></svg> Tester l\'envoi'; }
+}
+
+
+// ── TOTP ACCOUNT ─────────────────────────────────────────
+let _totpSetupUri = '';
+
+async function initTotpAccount() {
+    try {
+        const r = await api(`${APP_URL}/api/totp.php?action=status`, {method:'GET'});
+        const d = r.data;
+        const badge = document.getElementById('totp-status-badge');
+        const body  = document.getElementById('totp-account-content');
+        if (d.enabled) {
+            badge.innerHTML = '<span class="badge badge-active">Activé</span>';
+            body.innerHTML = `
+            <p style="font-size:14px;color:var(--text-secondary);margin-bottom:16px">
+                Le TOTP est actif sur votre compte. Vous serez invité à entrer votre code à chaque connexion.
+            </p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn btn-ghost" onclick="totpRegenBackup()">
+                    <svg width="16" height="16"><use href="#icon-refresh"/></svg> Régénérer les codes de secours
+                </button>
+                <button class="btn btn-ghost" onclick="totpDisableSelf()" style="color:var(--danger);border-color:rgba(255,71,87,.3)">
+                    Désactiver le TOTP
+                </button>
+            </div>`;
+        } else {
+            badge.innerHTML = '<span class="badge badge-retired">Désactivé</span>';
+            const policyMsg = d.policy === 'required_all'
+                ? '<div style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:#f5a623;margin-bottom:14px">⚠ La politique globale exige que vous configuriez le TOTP.</div>'
+                : '';
+            body.innerHTML = `${policyMsg}
+            <p style="font-size:14px;color:var(--text-secondary);margin-bottom:16px">
+                Activez la double authentification pour sécuriser votre compte.
+            </p>
+            <button class="btn btn-primary" onclick="totpSetup()">
+                <svg><use href="#icon-lock"/></svg> Configurer le TOTP
+            </button>`;
+        }
+    } catch(e) {}
+}
+
+async function totpSetup() {
+    try {
+        const r = await api(`${APP_URL}/api/totp.php?action=setup`, {method:'GET'});
+        const {secret, uri} = r.data;
+        _totpSetupUri = uri;
+        document.getElementById('totp-secret-display').textContent = secret;
+        document.getElementById('totp-verify-input').value = '';
+        Modal.open('modal-totp-setup');
+        // QR code via qrious
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js';
+        script.onload = () => {
+            new QRious({
+                element: document.getElementById('totp-qr-canvas'),
+                value: uri, size: 200,
+                background: '#0d1220', foreground: '#e8edf8', level: 'M'
+            });
+        };
+        if (!window.QRious) document.head.appendChild(script);
+        else script.onload();
+    } catch(e) {}
+}
+
+async function totpActivate() {
+    const code = document.getElementById('totp-verify-input').value.replace(/\D/g,'');
+    if (code.length !== 6) { toast('Entrez un code à 6 chiffres', 'warning'); return; }
+    try {
+        const r = await api(`${APP_URL}/api/totp.php`, {method:'POST', body:{action:'activate', code}});
+        Modal.close('modal-totp-setup');
+        showBackupCodes(r.data.backup_codes);
+        toast('TOTP activé avec succès', 'success');
+        setTimeout(() => initTotpAccount(), 1200);
+    } catch(e) {}
+}
+
+async function totpDisableSelf() {
+    if (!confirm('Désactiver le TOTP ? Votre compte sera moins sécurisé.')) return;
+    try {
+        await api(`${APP_URL}/api/totp.php`, {method:'POST', body:{action:'disable'}});
+        toast('TOTP désactivé', 'success');
+        initTotpAccount();
+    } catch(e) {}
+}
+
+async function totpRegenBackup() {
+    if (!confirm('Régénérer les codes de secours ? Les anciens seront invalidés.')) return;
+    try {
+        const r = await api(`${APP_URL}/api/totp.php`, {method:'POST', body:{action:'regen-backup'}});
+        showBackupCodes(r.data.backup_codes);
+    } catch(e) {}
+}
+
+function showBackupCodes(codes) {
+    const grid = document.getElementById('backup-codes-grid');
+    grid.innerHTML = codes.map(c =>
+        `<div style="font-family:monospace;font-size:13px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:6px;padding:8px 10px;text-align:center">${c}</div>`
+    ).join('');
+    Modal.open('modal-totp-backup');
+}
+
+function copyBackupCodes() {
+    const codes = [...document.querySelectorAll('#backup-codes-grid div')].map(d => d.textContent).join('\n');
+    navigator.clipboard.writeText(codes).then(() => toast('Codes copiés', 'success'));
+}
+
+document.getElementById('totp-verify-input')?.addEventListener('input', function() {
+    this.value = this.value.replace(/\D/g,'').slice(0,6);
+    if (this.value.length === 6) totpActivate();
+});
+
+// ── TOTP POLICY ─────────────────────────────────────────
+function highlightTotpPolicy() {
+    document.querySelectorAll('[id^="totp-opt-"]').forEach(el => {
+        const r = el.querySelector('input[type=radio]');
+        el.style.borderColor = r.checked ? 'var(--accent)' : 'var(--border)';
+    });
+}
+
+async function saveTotpPolicy() {
+    const val = document.querySelector('[name="totp_policy"]:checked')?.value;
+    if (!val) return;
+    try {
+        await api(`${APP_URL}/api/settings.php`, {method:'POST', body:{totp_policy: val}});
+        toast('Politique TOTP enregistrée', 'success');
+    } catch(e) {}
+}
+
+// ── LDAP ─────────────────────────────────────────────────
+document.getElementById('ldap_enabled')?.addEventListener('change', function() {
+    const body = document.getElementById('ldap-config-body');
+    body.style.opacity = this.checked ? '1' : '.45';
+    body.style.pointerEvents = this.checked ? '' : 'none';
+});
+
+function onLdapTlsChange() {
+    const tls  = document.getElementById('ldap_use_tls').checked;
+    const port = parseInt(document.getElementById('ldap_port').value, 10);
+    const autoCert = document.getElementById('ldap-auto-cert-btn');
+    if (autoCert) autoCert.style.display = (tls || port === 636) ? '' : 'none';
+}
+
+function onLdapCertVerifyChange() {
+    const verify = document.getElementById('ldap_cert_verify').checked;
+    document.getElementById('ldap-cert-block').style.display = verify ? '' : 'none';
+}
+
+function importCertFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => { document.getElementById('ldap_cert_content').value = e.target.result.trim(); };
+    reader.readAsText(file);
+}
+
+async function autoFetchCert() {
+    const host = document.getElementById('ldap_host').value.trim();
+    const port = document.getElementById('ldap_port').value.trim() || '636';
+    if (!host) { toast('Renseignez l\'hôte LDAP d\'abord', 'warning'); return; }
+    toast('Récupération du certificat via le serveur…', 'info');
+    try {
+        const r = await api(`${APP_URL}/api/ldap-test.php?fetch_cert=1&host=${encodeURIComponent(host)}&port=${encodeURIComponent(port)}`, {method:'GET'});
+        if (r.data?.cert) {
+            document.getElementById('ldap_cert_content').value = r.data.cert;
+            toast('Certificat récupéré', 'success');
+        }
+    } catch(e) {}
+}
+
+async function saveLdapSettings() {
+    const data = {
+        ldap_enabled:     document.getElementById('ldap_enabled').checked ? '1' : '0',
+        ldap_host:        document.getElementById('ldap_host').value.trim(),
+        ldap_port:        document.getElementById('ldap_port').value.trim(),
+        ldap_base_dn:     document.getElementById('ldap_base_dn').value.trim(),
+        ldap_bind_dn:     document.getElementById('ldap_bind_dn').value.trim(),
+        ldap_bind_pass:   document.getElementById('ldap_bind_pass').value,
+        ldap_user_filter: document.getElementById('ldap_user_filter').value.trim(),
+        ldap_use_tls:     document.getElementById('ldap_use_tls').checked ? '1' : '0',
+        ldap_cert_verify: document.getElementById('ldap_cert_verify').checked ? '1' : '0',
+        ldap_cert_content: document.getElementById('ldap_cert_content').value.trim(),
+    };
+    try {
+        await api(`${APP_URL}/api/settings.php`, {method:'POST', body: data});
+        toast('Configuration LDAP sauvegardée', 'success');
+    } catch(e) {}
+}
+
+async function testLdap() {
+    const btn = document.getElementById('btn-test-ldap');
+    btn.disabled = true;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<svg><use href="#icon-wifi"/></svg> Test en cours…';
+    // Save first so test uses current values
+    await saveLdapSettings().catch(() => {});
+    try {
+        const r = await api(`${APP_URL}/api/ldap-test.php`, {method:'GET'});
+        toast(r.message || 'Connexion réussie', 'success');
+    } catch(e) {}
+    finally { btn.disabled = false; btn.innerHTML = orig; }
+}
+
+// Init on load (after app.js defines window.api)
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initTotpAccount);
+} else {
+    initTotpAccount();
 }
 
 </script>

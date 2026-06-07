@@ -187,7 +187,7 @@ PKGS_TO_INSTALL=""
 need_install apache2       /etc/apache2/apache2.conf  && PKGS_TO_INSTALL="$PKGS_TO_INSTALL apache2"
 need_install mariadb-server /etc/mysql/mariadb.cnf    && PKGS_TO_INSTALL="$PKGS_TO_INSTALL mariadb-server"
 need_install php           /usr/bin/php               && PKGS_TO_INSTALL="$PKGS_TO_INSTALL php"
-for pkg in php-mysql php-mbstring php-xml php-curl php-zip php-gd php-fpm curl unzip rsync; do
+for pkg in php-mysql php-mbstring php-xml php-curl php-zip php-gd php-ldap php-fpm curl unzip rsync; do
     need_install "$pkg" && PKGS_TO_INSTALL="$PKGS_TO_INSTALL $pkg"
 done
 
@@ -291,9 +291,19 @@ mysql -u "${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" \
     -e "UPDATE app_settings SET setting_value='${APP_URL}' WHERE setting_key='app_url';"
 ok "SQL importé et configuré"
 
-# 4. Déploiement fichiers (depuis la racine du dépôt, parent de install/)
+# 4. Déploiement fichiers — deux modes :
+#    a) pack public : inventorflow-app.tar.gz à côté de install.sh  -> extraction
+#    b) dépôt git   : code dans le parent de install/               -> copie directe
 log "--- Déploiement de l'application..."
-APP_SRC="$(cd "${SCRIPT_DIR}/.." && pwd)"
+APP_TARBALL="${SCRIPT_DIR}/inventorflow-app.tar.gz"
+CLEANUP_SRC=""
+if [[ -f "$APP_TARBALL" ]]; then
+    APP_SRC="$(mktemp -d)"
+    CLEANUP_SRC="$APP_SRC"
+    tar -xzf "$APP_TARBALL" -C "$APP_SRC"
+else
+    APP_SRC="$(cd "${SCRIPT_DIR}/.." && pwd)"
+fi
 [[ ! -f "$APP_SRC/index.php" ]] && fail "Source de l'application introuvable (index.php absent dans $APP_SRC)"
 [[ -d "${INSTALL_DIR}" ]] && mv "${INSTALL_DIR}" "${INSTALL_DIR}.bak.$(date +%s)"
 mkdir -p "${INSTALL_DIR}"
@@ -301,6 +311,7 @@ tar -C "$APP_SRC" \
     --exclude='./install' --exclude='./.git' --exclude='./.github' \
     --exclude='./README.md' --exclude='./LICENSE' --exclude='./.gitignore' \
     -cf - . | tar -C "${INSTALL_DIR}" -xf -
+[[ -n "$CLEANUP_SRC" ]] && rm -rf "$CLEANUP_SRC"
 
 # Config DB
 cat > "${INSTALL_DIR}/config/db.php" << PHP
@@ -323,8 +334,9 @@ function db(): PDO {
 }
 PHP
 
-# Config App — version lue depuis le fichier VERSION livré avec le dépôt
-APP_VER="$(tr -cd '0-9.' < "${APP_SRC}/VERSION" 2>/dev/null || true)"; APP_VER="${APP_VER:-1.0.0}"
+# Config App — version lue depuis le fichier VERSION déjà déployé dans INSTALL_DIR
+# (APP_SRC peut être un tmp déjà nettoyé en mode pack public).
+APP_VER="$(tr -cd '0-9.' < "${INSTALL_DIR}/VERSION" 2>/dev/null || true)"; APP_VER="${APP_VER:-1.0.0}"
 cat > "${INSTALL_DIR}/config/app.php" << PHP
 <?php
 define('APP_VERSION',  '${APP_VER}');

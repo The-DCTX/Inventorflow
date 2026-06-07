@@ -1,0 +1,22 @@
+Options -Indexes
+ServerSignature Off
+
+# Protect sensitive files
+<FilesMatch "\.(sql|log|env|md|json)$">
+    Require all denied
+</FilesMatch>
+
+<Files "install.php">
+    # Remove this block after installation
+    # Require all denied
+</Files>
+
+# Rewrite index
+DirectoryIndex index.php login.php
+
+# Security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

@@ -39,6 +39,8 @@ render_icons();
             <th>Email</th>
             <th>Dernière connexion</th>
             <th>Statut</th>
+            <th>Auth</th>
+            <th>TOTP</th>
             <th style="cursor:default">Actions</th>
         </tr>
     </thead>
@@ -74,8 +76,26 @@ render_icons();
             <?php endif; ?>
         </td>
         <td>
+            <?php $src = $u['auth_source'] ?? 'local'; ?>
+            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;<?= $src==='ldap'?'background:rgba(56,217,245,.12);color:#38d9f5':'background:var(--bg-elevated);color:var(--text-muted)' ?>">
+                <?= strtoupper($src) ?>
+            </span>
+        </td>
+        <td>
+            <?php if (!empty($u['totp_enabled'])): ?>
+            <span class="badge badge-active">Actif</span>
+            <?php else: ?>
+            <span class="badge badge-retired">Inactif</span>
+            <?php endif; ?>
+        </td>
+        <td>
             <div class="td-actions">
                 <button class="btn btn-ghost btn-icon" onclick="openModal(<?= $u['id'] ?>)" title="Modifier"><svg><use href="#icon-edit"/></svg></button>
+                <?php if (!empty($u['totp_enabled'])): ?>
+                <button class="btn btn-ghost btn-icon" onclick="resetTotp(<?= $u['id'] ?>, '<?= h(addslashes($u['username'])) ?>')" title="Réinitialiser TOTP" style="color:var(--warning)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/></svg>
+                </button>
+                <?php endif; ?>
                 <?php if (!$is_me): ?>
                 <button class="btn btn-ghost btn-icon" onclick="deleteUser(<?= $u['id'] ?>, '<?= h(addslashes($u['username'])) ?>')" title="Supprimer"><svg style="color:var(--danger)"><use href="#icon-trash"/></svg></button>
                 <?php endif; ?>
@@ -142,6 +162,14 @@ render_icons();
                 <span>Compte actif</span>
             </label>
         </div>
+        <div class="form-group">
+            <label class="form-label">Source d'authentification</label>
+            <select id="user-auth-source" class="form-control">
+                <option value="local">Local (mot de passe InventorFlow)</option>
+                <option value="ldap">LDAP / Active Directory</option>
+            </select>
+            <div class="form-hint">LDAP : le mot de passe est vérifié par l'annuaire</div>
+        </div>
         </form>
     </div>
     <div class="modal-footer">
@@ -193,7 +221,8 @@ function openModal(id) {
         document.getElementById('user-fullname').value = u.full_name;
         document.getElementById('user-email').value    = u.email;
         document.getElementById('user-role').value     = u.role;
-        document.getElementById('user-client').value   = u.client_id;
+        document.getElementById('user-client').value      = u.client_id;
+        document.getElementById('user-auth-source').value = u.auth_source || 'local';
         document.getElementById('user-active').checked = u.active == 1;
         document.getElementById('active-group').style.display = u.id != ME_ID ? '' : 'none';
         document.getElementById('pwd-hint').style.display = '';
@@ -222,7 +251,8 @@ async function saveUser() {
         full_name: document.getElementById('user-fullname').value.trim(),
         email:     document.getElementById('user-email').value.trim(),
         role,
-        client_id: role !== 'superadmin' ? clientId : '',
+        client_id:   role !== 'superadmin' ? clientId : '',
+        auth_source: document.getElementById('user-auth-source').value,
         active:    document.getElementById('user-active').checked ? 1 : 0,
     };
     if (password) body.password = password;
@@ -238,6 +268,15 @@ async function saveUser() {
     } catch(e) {
         btn.disabled = false;
     }
+}
+
+async function resetTotp(id, username) {
+    if (!confirm(`Réinitialiser le TOTP de "${username}" ? L'utilisateur devra le reconfigurer.`)) return;
+    try {
+        await api(`${APP_URL}/api/users-admin.php`, { method: 'PUT', body: { id, totp_reset: true } });
+        toast('TOTP réinitialisé', 'success');
+        setTimeout(() => location.reload(), 600);
+    } catch(e) {}
 }
 
 async function deleteUser(id, username) {
