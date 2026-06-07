@@ -232,13 +232,29 @@ L'agent s'enrôle automatiquement et remonte ses métriques toutes les heures :
 
 ```
 inventor-flow/
-├── config/        # Connexion DB + configuration applicative
-├── includes/      # Layout, authentification, fonctions partagées
-├── api/           # Endpoints REST (assets, licences, monitoring, facturation…)
-├── pages/         # Vues (parc, supervision, licences, facturation, rapports…)
-├── agent/         # Agent de supervision bash
-├── deploy.php     # Générateur d'installeur d'agent (clé par client)
-└── assets/        # CSS (dark mode) + JS (toast, modales, helpers API)
+│  ── Pages web (servies directement par l'URL) ──
+├── index.php             # Tableau de bord
+├── login.php             # Connexion  (login-totp.php : 2ᵉ étape TOTP)
+├── recovery.php          # Restauration de secours (page autonome)
+├── deploy.php            # Générateur d'installeur d'agent (clé par client)
+│
+│  ── Code applicatif ──
+├── pages/                # Vues (parc, supervision, licences, facturation…)
+├── api/                  # Endpoints REST (assets, restore, totp, monitoring…)
+├── includes/             # Auth, TOTP, LDAP, layout, fonctions partagées
+├── config/               # Connexion DB + config (générés à l'installation)
+├── assets/               # CSS (thèmes) + JS (toasts, modales, helpers API)
+├── agent/                # Agent de supervision (bash universel + PowerShell)
+│
+│  ── Déploiement & données ──
+├── install/              # Installeur bare-metal (install.sh + install.sql)
+├── migrations/           # Migrations SQL additives (migrate.php)
+├── maintenance/          # backup / restore / update / purge / tuning
+├── Dockerfile            # Image PHP 8.4 + Apache
+├── docker-compose.yml    # Pile complète (app + MariaDB)
+├── docker/               # entrypoint.sh (initialisation au démarrage)
+│
+└── docs/ · vendor/       # Captures & page GitHub Pages · dépendances
 ```
 
 ---
