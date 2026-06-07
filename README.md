@@ -13,9 +13,11 @@
 ![Apache](https://img.shields.io/badge/Apache-2.4-D22128?style=for-the-badge&logo=apache&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/Vanilla_JS-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![License](https://img.shields.io/badge/licence-AGPL--3.0-blue?style=for-the-badge)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 <br>
 
+[🐳 Démarrage Docker](#-démarrage-rapide-docker) •
 [Fonctionnalités](#-fonctionnalités) •
 [Architecture](#%EF%B8%8F-architecture) •
 [Installation](#-installation) •
@@ -23,6 +25,18 @@
 [Stack](#-stack-technique)
 
 </div>
+
+---
+
+## ⚡ Démarrage rapide (Docker)
+
+```bash
+cp .env.example .env       # réglez les mots de passe (base, admin)
+docker compose up -d --build
+```
+
+➜ **http://localhost:8080** *(ou `http://<IP_DU_SERVEUR>:8080` à distance)* — login `admin` / `ADMIN_PASS`
+La base, le compte admin et les migrations sont initialisés automatiquement. *([détails & options →](#-avec-docker-le-plus-rapide))*
 
 ---
 
