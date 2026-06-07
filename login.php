@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
     }
+    audit_log('login_failed', 'user', null, ['username' => $username]);
     $error = 'Identifiants incorrects. Veuillez réessayer.';
 }
 ?>

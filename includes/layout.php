@@ -95,6 +95,7 @@ function render_sidebar(string $active = ''): void {
     ];
     if (is_superadmin()) {
         $nav_groups[3]['items'][] = ['id' => 'clients', 'label' => 'Clients', 'icon' => 'briefcase', 'url' => APP_URL . '/pages/clients.php'];
+        $nav_groups[3]['items'][] = ['id' => 'audit-log', 'label' => 'Journal d\'audit', 'icon' => 'clock', 'url' => APP_URL . '/pages/audit-log.php'];
     }
     ?>
     <div class="sidebar" id="sidebar">

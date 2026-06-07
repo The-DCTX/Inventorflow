@@ -28,4 +28,5 @@ $pdo->prepare('UPDATE users SET password = ? WHERE id = ?')->execute([$hash, $us
 // Invalidate session settings cache so next login is clean
 unset($_SESSION['_app_settings']);
 
+audit_log('password_change', 'user', (int)(current_user()['id'] ?? 0));
 json_success([], 'Mot de passe changé');

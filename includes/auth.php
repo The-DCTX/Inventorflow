@@ -92,6 +92,7 @@ function complete_login(array $user): void {
     }
 
     $pdo->prepare('UPDATE users SET last_login = NOW() WHERE id = ?')->execute([$user['id']]);
+    audit_log('login_success', 'user', (int)$user['id']);
 }
 
 function logout(): void {

@@ -233,6 +233,22 @@ function status_badge(string $status): string {
     return "<span class=\"badge {$s['class']}\">{$s['label']}</span>";
 }
 
+/**
+ * Journalise une action sensible dans audit_logs. Ne bloque jamais l'action
+ * métier en cas d'erreur (table absente, etc.).
+ */
+function audit_log(string $action, ?string $entity = null, ?int $entity_id = null, array $details = []): void {
+    try {
+        $u = $_SESSION['user'] ?? [];
+        db()->prepare('INSERT INTO audit_logs (user_id, username, action, entity_type, entity_id, details, ip_address) VALUES (?,?,?,?,?,?,?)')
+           ->execute([
+               $u['id'] ?? null, $u['username'] ?? null, $action, $entity, $entity_id,
+               $details ? json_encode($details, JSON_UNESCAPED_UNICODE) : null,
+               $_SERVER['REMOTE_ADDR'] ?? null,
+           ]);
+    } catch (Throwable $e) { /* audit best-effort */ }
+}
+
 function time_ago(string $datetime): string {
     $diff = time() - strtotime($datetime);
     if ($diff < 60) return 'À l\'instant';

@@ -48,6 +48,7 @@ if ($method === 'POST' && $action === 'activate') {
     $stmt->execute([$me['id']]);
     $_SESSION['user'] = $stmt->fetch();
 
+    audit_log('totp_enable', 'user', (int)$me['id']);
     json_success(['backup_codes' => $backup], 'TOTP activé');
 }
 
@@ -64,6 +65,7 @@ if ($method === 'POST' && $action === 'disable') {
         $stmt->execute([$me['id']]);
         $_SESSION['user'] = $stmt->fetch();
     }
+    audit_log('totp_disable', 'user', $target_id);
     json_success([], 'TOTP désactivé');
 }
 
@@ -79,6 +81,7 @@ if ($method === 'POST' && $action === 'regen-backup') {
 
     $backup = totp_generate_backup_codes();
     totp_store_backup_codes($target_id, $backup);
+    audit_log('totp_backup_regen', 'user', $target_id);
     json_success(['backup_codes' => $backup], 'Codes de secours régénérés');
 }
 

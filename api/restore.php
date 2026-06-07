@@ -53,6 +53,7 @@ if ($method === 'POST') {
             }
             json_error("Échec de la restauration : " . $out, 500);
         }
+        audit_log('restore', 'backup', null, ['db' => $db, 'files' => $files]);
         json_success(['log' => $out], 'Restauration effectuée (une sauvegarde de sécurité a été créée avant)');
     }
 

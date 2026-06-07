@@ -52,6 +52,7 @@ if ($method === 'POST') {
     unset($_SESSION['_app_settings']);
     session_write_close();
 
+    audit_log('settings_update', 'settings', null);
     json_success([], 'Paramètres sauvegardés');
 }
 

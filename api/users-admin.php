@@ -33,6 +33,7 @@ if ($method === 'POST') {
         VALUES (?,?,?,?,?,?,1,?)')
         ->execute([$username, $hash, trim($raw['full_name'] ?? ''), $raw['email'] ?: null, $role, $client_id, $auth_source]);
 
+    audit_log('user_create', 'user', (int)$pdo->lastInsertId(), ['username' => $username, 'role' => $role]);
     json_success(['id' => (int)$pdo->lastInsertId()], 'Compte créé');
 }
 
@@ -56,6 +57,7 @@ if ($method === 'PUT') {
     if (!empty($raw['totp_reset'])) {
         $pdo->prepare('UPDATE users SET totp_secret=NULL, totp_enabled=0, totp_backup_codes=NULL WHERE id=?')
             ->execute([$id]);
+        audit_log('totp_reset', 'user', $id);
         json_success([], 'TOTP réinitialisé');
     }
 
@@ -71,6 +73,7 @@ if ($method === 'PUT') {
             ->execute([password_hash($raw['password'], PASSWORD_DEFAULT), $id]);
     }
 
+    audit_log('user_update', 'user', $id, ['role' => $role]);
     json_success([], 'Compte mis à jour');
 }
 
@@ -90,6 +93,7 @@ if ($method === 'DELETE') {
     }
 
     $pdo->prepare('DELETE FROM users WHERE id=?')->execute([$id]);
+    audit_log('user_delete', 'user', $id);
     json_success([], 'Compte supprimé');
 }
 
