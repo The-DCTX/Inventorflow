@@ -20,6 +20,9 @@ services:
       retries: 12
 
   app:
+    # Image officielle publiée à chaque release (docker compose pull),
+    # ou construction locale depuis les sources (docker compose up --build).
+    image: ghcr.io/the-dctx/inventorflow:latest
     build: .
     restart: unless-stopped
     depends_on:

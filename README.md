@@ -32,7 +32,8 @@
 
 ```bash
 cp .env.example .env       # réglez les mots de passe (base, admin)
-docker compose up -d --build
+docker compose pull        # image officielle pré-construite (sans compiler)
+docker compose up -d
 ```
 
 ➜ **http://localhost:8080** *(ou `http://<IP_DU_SERVEUR>:8080` à distance)* — login `admin` / `ADMIN_PASS`
@@ -148,6 +149,11 @@ Pour essayer ou déployer InventorFlow sans configurer la pile à la main :
 
 ```bash
 cp .env.example .env      # réglez les mots de passe (base, admin) avant le 1er démarrage
+
+# Image officielle (rapide, multi-arch, aucune compilation) :
+docker compose pull && docker compose up -d
+
+# — ou — compiler depuis les sources (développement) :
 docker compose up -d --build
 ```
 
