@@ -1,0 +1,13 @@
+# Exclut du contexte de build ce qui ne doit pas entrer dans l'image
+# (secrets régénérés au démarrage, données, historique git, résidus).
+.git
+.github
+backups/
+config/db.php
+config/recovery.php
+MEMORY.md
+docs/DEVELOPMENT.md
+*.bak
+*.bak_*
+*.bak_*
+.env

@@ -1,0 +1,42 @@
+# InventorFlow — pile complète (application + base de données).
+# Démarrage :  cp .env.example .env  puis  docker compose up -d --build
+# Accès     :  http://localhost:8080   (admin / valeur de ADMIN_PASS)
+
+services:
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-inventorflow}
+      MARIADB_USER: ${DB_USER:-inventorflow}
+      MARIADB_PASSWORD: ${DB_PASS:-inventorflow}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASS:-root-change-me}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-inventorflow}
+      DB_USER: ${DB_USER:-inventorflow}
+      DB_PASS: ${DB_PASS:-inventorflow}
+      ADMIN_PASS: ${ADMIN_PASS:-AdminTest2024!}
+      RECOVERY_PASS: ${RECOVERY_PASS:-}
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - app_backups:/var/www/html/backups
+
+volumes:
+  db_data:
+  app_backups:

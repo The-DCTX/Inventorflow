@@ -128,6 +128,22 @@ flowchart LR
 
 ---
 
+## 🐳 Avec Docker (le plus rapide)
+
+Pour essayer ou déployer InventorFlow sans configurer la pile à la main :
+
+```bash
+cp .env.example .env      # réglez les mots de passe (base, admin) avant le 1er démarrage
+docker compose up -d --build
+```
+
+➜ **Application** : http://localhost:8080 *(ou `http://<IP_DU_SERVEUR>:8080` si Docker tourne sur une machine distante)*
+➜ **Login** : `admin` / valeur de `ADMIN_PASS`
+
+La base de données, le compte administrateur et les migrations sont initialisés **automatiquement** au premier démarrage. Les données (base + `backups/`) persistent dans des volumes Docker. Idéal pour l'essai et le développement ; pour une exposition publique, placez un reverse-proxy HTTPS devant.
+
+---
+
 ## 🚀 Installation
 
 Déploiement automatisé sur **Debian 11+/Ubuntu 22.04+** (Apache2 + PHP-FPM + MariaDB), via le pack de release :
