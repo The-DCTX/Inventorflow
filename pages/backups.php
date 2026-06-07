@@ -41,6 +41,85 @@ render_icons();
 <?php render_topbar('Sauvegardes', 'Monitoring et historique des backups'); ?>
 <main class="main-content">
 
+<!-- ─── RESTAURATION ─────────────────────────────────────────────────────── -->
+<div class="card mb-24">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Restaurer une sauvegarde</div>
+            <div class="card-subtitle">Explorez le contenu puis restaurez la base et/ou les fichiers. Une sauvegarde de sécurité est créée avant.</div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="restore-list"><p class="text-muted" style="font-size:13.5px">Chargement…</p></div>
+    </div>
+</div>
+
+<!-- ─── RESTAURATION DE SECOURS ──────────────────────────────────────────── -->
+<div class="card mb-24">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Restauration de secours</div>
+            <div class="card-subtitle">Page autonome utilisable même si l'application est cassée, protégée par un mot de passe dédié (indépendant de la base).</div>
+        </div>
+        <span id="recovery-state" class="badge badge-retired">Non configuré</span>
+    </div>
+    <div class="card-body">
+        <div class="form-row" style="align-items:flex-end">
+            <div class="form-group">
+                <label class="form-label">Mot de passe de secours</label>
+                <input type="password" id="recovery-pw" class="form-control" placeholder="8 caractères minimum" autocomplete="new-password">
+                <div class="form-hint">Sera demandé sur la page de secours. Stocké haché dans <code>config/recovery.php</code> (hors base).</div>
+            </div>
+            <div class="form-group" style="flex:0 0 auto">
+                <button class="btn btn-primary" onclick="setRecoveryPassword()"><svg><use href="#icon-lock"/></svg> Définir</button>
+            </div>
+        </div>
+        <a href="<?= APP_URL ?>/recovery.php" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="margin-top:6px">
+            Ouvrir la page de secours →
+        </a>
+    </div>
+</div>
+
+<!-- Modal exploration -->
+<div class="modal-backdrop" id="modal-explore" style="display:none">
+<div class="modal" style="max-width:640px;width:100%">
+    <div class="modal-header">
+        <h2 class="modal-title" id="explore-title">Exploration</h2>
+        <button class="btn btn-ghost btn-icon" onclick="Modal.close('modal-explore')"><svg><use href="#icon-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+        <div id="explore-meta" style="font-size:12.5px;color:var(--text-muted);margin-bottom:8px"></div>
+        <div id="explore-body" style="background:var(--bg-base);border:1px solid var(--border);border-radius:8px;padding:12px;max-height:340px;overflow:auto;font-family:monospace;font-size:12px;white-space:pre-wrap"></div>
+    </div>
+</div>
+</div>
+
+<!-- Modal restauration -->
+<div class="modal-backdrop" id="modal-restore" style="display:none">
+<div class="modal" style="max-width:460px;width:100%">
+    <div class="modal-header">
+        <h2 class="modal-title">Restaurer la sauvegarde</h2>
+        <button class="btn btn-ghost btn-icon" onclick="Modal.close('modal-restore')"><svg><use href="#icon-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+        <div style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);color:#f5a623;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px">
+            ⚠ Les données actuelles seront <b>écrasées</b>. Une sauvegarde de sécurité est créée automatiquement avant.
+        </div>
+        <div id="restore-date" style="font-weight:700;margin-bottom:10px"></div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+            <label id="restore-db-lbl" style="font-size:13.5px"><input type="checkbox" id="restore-db" checked> Base de données</label>
+            <label id="restore-files-lbl" style="font-size:13.5px"><input type="checkbox" id="restore-files"> Fichiers de l'application</label>
+        </div>
+        <input type="text" id="restore-confirm" class="form-control" placeholder="Tapez RESTAURER pour confirmer">
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="Modal.close('modal-restore')">Annuler</button>
+        <button class="btn btn-primary" id="restore-go" style="background:var(--danger)" onclick="doRestore()">Restaurer</button>
+    </div>
+</div>
+</div>
+
+
 <!-- KPI -->
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
 
@@ -266,6 +345,85 @@ async function runBackup() {
         btn.innerHTML = '<svg><use href="#icon-refresh"/></svg> Lancer maintenant';
     }
 }
+
+// ── RESTAURATION ────────────────────────────────────────
+let _restoreSet = null;
+const _fmtSize = b => b > 1048576 ? (b/1048576).toFixed(1)+' Mo' : Math.round(b/1024)+' Ko';
+
+async function initRestore() {
+    try {
+        const r = await api(`${APP_URL}/api/restore.php?action=list`, {method:'GET'});
+        const sets = r.data.sets || [];
+        document.getElementById('recovery-state').className = 'badge ' + (r.data.recovery_configured ? 'badge-active' : 'badge-retired');
+        document.getElementById('recovery-state').textContent = r.data.recovery_configured ? 'Configuré' : 'Non configuré';
+        const box = document.getElementById('restore-list');
+        if (!sets.length) { box.innerHTML = '<p class="text-muted" style="font-size:13.5px">Aucune sauvegarde disponible.</p>'; return; }
+        box.innerHTML = sets.map(s => {
+            const db = s.db ? `<button class="btn btn-ghost btn-sm" onclick="explore('db','${s.db.name}')">Explorer base</button>` : '';
+            const fl = s.files ? `<button class="btn btn-ghost btn-sm" onclick="explore('files','${s.files.name}')">Explorer fichiers</button>` : '';
+            const dbInfo = s.db ? `base ${_fmtSize(s.db.size)}` : '';
+            const flInfo = s.files ? `fichiers ${_fmtSize(s.files.size)}` : '';
+            return `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+                <span style="font-weight:700">${s.date}</span>
+                <span style="font-size:12.5px;color:var(--text-muted)">${[dbInfo,flInfo].filter(Boolean).join(' · ')}</span>
+                <span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">${db}${fl}
+                    <button class="btn btn-primary btn-sm" onclick='openRestore(${JSON.stringify(s)})'>Restaurer</button>
+                </span>
+            </div>`;
+        }).join('');
+    } catch(e) {}
+}
+
+async function explore(kind, name) {
+    try {
+        const r = await api(`${APP_URL}/api/restore.php?action=explore_${kind}&name=${encodeURIComponent(name)}`, {method:'GET'});
+        const d = r.data;
+        document.getElementById('explore-title').textContent = 'Exploration — ' + name;
+        document.getElementById('explore-meta').textContent = (d.count ?? 0) + (kind==='db' ? ' tables' : ' entrées');
+        document.getElementById('explore-body').textContent = d.error ? d.error : (kind==='db' ? d.tables : d.entries).join('\n');
+        Modal.open('modal-explore');
+    } catch(e) {}
+}
+
+function openRestore(s) {
+    _restoreSet = s;
+    document.getElementById('restore-date').textContent = 'Sauvegarde du ' + s.date;
+    document.getElementById('restore-db-lbl').style.display    = s.db ? '' : 'none';
+    document.getElementById('restore-files-lbl').style.display = s.files ? '' : 'none';
+    document.getElementById('restore-db').checked = !!s.db;
+    document.getElementById('restore-files').checked = false;
+    document.getElementById('restore-confirm').value = '';
+    Modal.open('modal-restore');
+}
+
+async function doRestore() {
+    if (document.getElementById('restore-confirm').value !== 'RESTAURER') { toast('Tapez RESTAURER pour confirmer', 'warning'); return; }
+    const body = { action:'restore' };
+    if (document.getElementById('restore-db').checked    && _restoreSet.db)    body.db    = _restoreSet.db.name;
+    if (document.getElementById('restore-files').checked && _restoreSet.files) body.files = _restoreSet.files.name;
+    if (!body.db && !body.files) { toast('Sélectionnez la base et/ou les fichiers', 'warning'); return; }
+    const btn = document.getElementById('restore-go'); btn.disabled = true; btn.textContent = 'Restauration…';
+    try {
+        await api(`${APP_URL}/api/restore.php`, {method:'POST', body});
+        toast('Restauration effectuée (sauvegarde de sécurité créée avant)', 'success');
+        Modal.close('modal-restore');
+    } catch(e) {} finally { btn.disabled = false; btn.textContent = 'Restaurer'; }
+}
+
+async function setRecoveryPassword() {
+    const pw = document.getElementById('recovery-pw').value;
+    if (pw.length < 8) { toast('Mot de passe trop court (8 min)', 'warning'); return; }
+    try {
+        await api(`${APP_URL}/api/restore.php`, {method:'POST', body:{action:'set_recovery_password', password:pw}});
+        toast('Mot de passe de secours défini', 'success');
+        document.getElementById('recovery-pw').value = '';
+        initRestore();
+    } catch(e) {}
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initRestore);
+else initRestore();
+
 </script>
 
 <?php render_footer(); ?>

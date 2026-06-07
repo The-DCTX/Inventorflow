@@ -185,6 +185,16 @@ fi
 [[ -f "$APP_DIR/install.php" ]] && rm -f "$APP_DIR/install.php"
 chown -R www-data:www-data "$APP_DIR" 2>/dev/null || true
 
+# ── (Re)pose de la règle sudo « un clic » (update.sh + restore.sh) ───────────
+# Best-effort idempotent : les mises à jour obtiennent l'autorisation pour les
+# nouveaux scripts (ex. restore.sh) sans intervention SSH manuelle. Placé APRÈS
+# le chown -R pour que les scripts redeviennent root-owned (sécurité du NOPASSWD).
+if [[ -f "$APP_DIR/maintenance/enable-oneclick.sh" ]]; then
+    bash "$APP_DIR/maintenance/enable-oneclick.sh" >/dev/null 2>&1 \
+        && ok "Règle « un clic » à jour (update.sh + restore.sh)." \
+        || warn "Règle « un clic » non actualisée — lancez enable-oneclick.sh si besoin."
+fi
+
 ok "Mise à jour terminée : $CUR_VER → $TARGET_VER"
 echo
 info "Les agents déjà en v1.0.6+ se mettront à jour seuls. Sinon, re-déployez-les une fois depuis la fiche client."

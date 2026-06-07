@@ -30,8 +30,14 @@ id "$WEB_USER" >/dev/null 2>&1 || err "Utilisateur web '${WEB_USER}' inconnu. Re
 # deviendrait une escalade de privilèges).
 chown root:root "$UPDATE_SH"
 chmod 755 "$UPDATE_SH"
+RESTORE_SH="${SCRIPT_DIR}/restore.sh"
+[[ -f "$RESTORE_SH" ]] && { chown root:root "$RESTORE_SH"; chmod 755 "$RESTORE_SH"; }
 
-echo "${WEB_USER} ALL=(root) NOPASSWD: ${UPDATE_SH}" > "$SUDOERS_FILE"
+if [[ -f "$RESTORE_SH" ]]; then
+    echo "${WEB_USER} ALL=(root) NOPASSWD: ${UPDATE_SH}, ${RESTORE_SH}" > "$SUDOERS_FILE"
+else
+    echo "${WEB_USER} ALL=(root) NOPASSWD: ${UPDATE_SH}" > "$SUDOERS_FILE"
+fi
 chmod 440 "$SUDOERS_FILE"
 
 if visudo -cf "$SUDOERS_FILE" >/dev/null 2>&1; then

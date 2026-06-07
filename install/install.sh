@@ -377,11 +377,17 @@ ok "Fichiers déployés dans ${INSTALL_DIR}"
 # script en root. update.sh ne télécharge que depuis le dépôt officiel (HTTPS),
 # ne fait aucune purge et sauvegarde la base avant toute migration.
 UPDATE_SH="${INSTALL_DIR}/maintenance/update.sh"
+RESTORE_SH="${INSTALL_DIR}/maintenance/restore.sh"
 if [[ -f "$UPDATE_SH" ]]; then
     chown root:root "$UPDATE_SH"
     chmod 755 "$UPDATE_SH"
+    [[ -f "$RESTORE_SH" ]] && { chown root:root "$RESTORE_SH"; chmod 755 "$RESTORE_SH"; }
     SUDOERS_FILE="/etc/sudoers.d/inventorflow-update"
-    echo "www-data ALL=(root) NOPASSWD: ${UPDATE_SH}" > "$SUDOERS_FILE"
+    if [[ -f "$RESTORE_SH" ]]; then
+        echo "www-data ALL=(root) NOPASSWD: ${UPDATE_SH}, ${RESTORE_SH}" > "$SUDOERS_FILE"
+    else
+        echo "www-data ALL=(root) NOPASSWD: ${UPDATE_SH}" > "$SUDOERS_FILE"
+    fi
     chmod 440 "$SUDOERS_FILE"
     if visudo -cf "$SUDOERS_FILE" >/dev/null 2>&1; then
         ok "Mises à jour en un clic activées (règle sudo verrouillée sur update.sh)"
