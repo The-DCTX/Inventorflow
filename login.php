@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     audit_log('login_failed', 'user', null, ['username' => $username]);
-    $error = 'Identifiants incorrects. Veuillez réessayer.';
+    $error = t('Identifiants incorrects. Veuillez réessayer.');
 }
 ?>
 <!DOCTYPE html>
@@ -49,8 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <span class="login-logo-text">InventorFlow</span>
         </div>
 
-        <h1 class="login-title">Connexion</h1>
-        <p class="login-subtitle">Accédez à votre espace de gestion du parc IT</p>
+        <h1 class="login-title"><?= th('Connexion') ?></h1>
+        <p class="login-subtitle"><?= th('Accédez à votre espace de gestion du parc IT') ?></p>
 
         <?php if ($error): ?>
         <div class="login-error">
@@ -61,18 +61,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="POST" autocomplete="on">
             <div class="form-group">
-                <label for="username">Identifiant</label>
+                <label for="username"><?= th('Identifiant') ?></label>
                 <input type="text" id="username" name="username" class="form-control"
                     placeholder="Votre identifiant" autocomplete="username" required
                     value="<?= h($_POST['username'] ?? '') ?>">
             </div>
             <div class="form-group">
-                <label for="password">Mot de passe</label>
+                <label for="password"><?= th('Mot de passe') ?></label>
                 <input type="password" id="password" name="password" class="form-control"
                     placeholder="••••••••" autocomplete="current-password" required>
             </div>
             <button type="submit" class="btn btn-primary w-full" style="width:100%;justify-content:center;margin-top:8px;padding:11px">
-                Se connecter
+                <?= th('Se connecter') ?>
             </button>
         </form>
 

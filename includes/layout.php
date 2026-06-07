@@ -138,14 +138,14 @@ function render_sidebar(string $active = ''): void {
         <nav class="sidebar-nav">
             <?php foreach ($nav_groups as $gi => $group): ?>
             <?php if ($group['label']): ?>
-            <div class="nav-group-label"><?= h($group['label']) ?></div>
+            <div class="nav-group-label"><?= h(t($group['label'])) ?></div>
             <?php elseif ($gi > 0): ?>
             <div class="nav-separator"></div>
             <?php endif; ?>
             <?php foreach ($group['items'] as $item): ?>
             <a href="<?= $item['url'] ?>" class="nav-item <?= $active === $item['id'] ? 'active' : '' ?>">
                 <svg class="nav-icon"><use href="#icon-<?= $item['icon'] ?>"/></svg>
-                <span class="nav-label"><?= h($item['label']) ?></span>
+                <span class="nav-label"><?= h(t($item['label'])) ?></span>
                 <?php if ($item['id'] === 'monitoring' && ($alert_count > 0 || $incident_count > 0)): ?>
                 <span style="margin-left:auto;min-width:18px;height:18px;background:var(--danger);color:#fff;border-radius:9px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0"><?= $alert_count + $incident_count ?></span>
                 <?php endif; ?>
@@ -165,7 +165,12 @@ function render_sidebar(string $active = ''): void {
                     <span class="user-role"><?= h($user['role']) ?></span>
                 </div>
             </div>
-            <a href="<?= APP_URL ?>/logout.php" class="logout-btn" title="Déconnexion">
+            <select onchange="setLanguage(this.value)" title="<?= th('Langue') ?>" style="background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;font-size:12px;padding:5px 8px;margin-right:8px;cursor:pointer">
+                <?php foreach (i18n_langs() as $lc => $ln): ?>
+                <option value="<?= $lc ?>" <?= current_lang() === $lc ? 'selected' : '' ?>><?= h($ln) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <a href="<?= APP_URL ?>/logout.php" class="logout-btn" title="<?= th('Déconnexion') ?>">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             </a>
         </div>

@@ -250,6 +250,7 @@ function audit_log(string $action, ?string $entity = null, ?int $entity_id = nul
 }
 
 require_once __DIR__ . '/custom_fields.php';
+require_once __DIR__ . '/i18n.php';
 
 function time_ago(string $datetime): string {
     $diff = time() - strtotime($datetime);

@@ -126,6 +126,9 @@ window.cfFill = function(scope, values) {
     else i.value = v;
   });
 };
+window.setLanguage = function(lang) {
+  api('/api/set-language.php', {method:'POST', body:{lang}}).then(() => location.reload()).catch(() => {});
+};
 window.cfCollect = function(scope) {
   const el = typeof scope === 'string' ? document.getElementById(scope) : scope;
   const out = {};
