@@ -8,7 +8,7 @@ $client_id = current_client_id();
 $raw       = json_decode(file_get_contents('php://input'), true) ?? $_POST;
 
 if ($method === 'GET') {
-    $cid    = (int)($_GET['client_id'] ?? $client_id);
+    $cid    = $client_id; // toujours le client courant (on n'honore aucun client_id de requête — anti-IDOR)
     $target = $_GET['target'] ?? null; // 'asset' | 'employee' | null = tous
 
     $sql = 'SELECT l.*,

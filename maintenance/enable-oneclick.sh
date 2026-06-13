@@ -33,6 +33,12 @@ chmod 755 "$UPDATE_SH"
 RESTORE_SH="${SCRIPT_DIR}/restore.sh"
 [[ -f "$RESTORE_SH" ]] && { chown root:root "$RESTORE_SH"; chmod 755 "$RESTORE_SH"; }
 
+# Le dossier lui-même ne doit PAS être modifiable par le web : sinon www-data
+# pourrait remplacer update.sh/restore.sh malgré leur propriété root (le rename
+# ne dépend que des droits du dossier) et obtenir un RCE root via le NOPASSWD.
+chown root:root "$SCRIPT_DIR"
+chmod 755 "$SCRIPT_DIR"
+
 if [[ -f "$RESTORE_SH" ]]; then
     echo "${WEB_USER} ALL=(root) NOPASSWD: ${UPDATE_SH}, ${RESTORE_SH}" > "$SUDOERS_FILE"
 else

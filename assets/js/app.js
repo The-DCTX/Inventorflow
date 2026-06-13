@@ -1,5 +1,12 @@
 'use strict';
 
+// ── ÉCHAPPEMENT HTML (anti-XSS pour les templates injectés via innerHTML) ──
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+window.escapeHtml = escapeHtml;
+
 // ── SIDEBAR TOGGLE ──────────────────────────────────
 const sidebar = document.getElementById('sidebar');
 const menuBtn = document.getElementById('menuBtn');

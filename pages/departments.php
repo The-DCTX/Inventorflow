@@ -295,13 +295,13 @@ function renderDpEmployees(list) {
     el.innerHTML = list.map(e => `
         <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
             <div style="width:32px;height:32px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">
-                ${(e.first_name[0]+e.last_name[0]).toUpperCase()}
+                ${escapeHtml((e.first_name[0]+e.last_name[0]).toUpperCase())}
             </div>
             <div style="flex:1;min-width:0">
                 <div style="font-size:13px;font-weight:600">
-                    <a href="${APP_URL}/pages/employee-profile.php?id=${e.id}" style="color:var(--text-primary);text-decoration:none" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-primary)'">${e.first_name} ${e.last_name}</a>
+                    <a href="${APP_URL}/pages/employee-profile.php?id=${e.id}" style="color:var(--text-primary);text-decoration:none" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-primary)'">${escapeHtml(e.first_name)} ${escapeHtml(e.last_name)}</a>
                 </div>
-                <div style="font-size:12px;color:var(--text-muted)">${e.position||'—'}</div>
+                <div style="font-size:12px;color:var(--text-muted)">${escapeHtml(e.position||'—')}</div>
             </div>
             <span style="font-size:12px;color:var(--text-muted)">${e.asset_count} poste${e.asset_count!=1?'s':''}</span>
         </div>`).join('');
@@ -309,15 +309,15 @@ function renderDpEmployees(list) {
 
 function renderDpAssets(list) {
     const el = document.getElementById('dp-assets-list');
-    const osBadge = os => ({MAC:'<span class="badge badge-mac">MAC</span>',WIN:'<span class="badge badge-win">WIN</span>',LIN:'<span class="badge badge-lin">LIN</span>'}[os]||os);
-    const stBadge = s => ({active:'<span class="badge badge-active">Actif</span>',stock:'<span class="badge badge-stock">Stock</span>',repair:'<span class="badge badge-repair">Réparation</span>',retired:'<span class="badge badge-retired">Retraité</span>'}[s]||s);
+    const osBadge = os => ({MAC:'<span class="badge badge-mac">MAC</span>',WIN:'<span class="badge badge-win">WIN</span>',LIN:'<span class="badge badge-lin">LIN</span>'}[os]||escapeHtml(os));
+    const stBadge = s => ({active:'<span class="badge badge-active">Actif</span>',stock:'<span class="badge badge-stock">Stock</span>',repair:'<span class="badge badge-repair">Réparation</span>',retired:'<span class="badge badge-retired">Retraité</span>'}[s]||escapeHtml(s));
     if (!list.length) { el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:12px 0">Aucun poste</div>'; return; }
     el.innerHTML = list.map(a => `
         <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
             ${osBadge(a.os_type)}
             <div style="flex:1;min-width:0">
-                <div style="font-size:13px;font-weight:600;font-family:monospace;color:var(--accent)">${a.hostname}</div>
-                <div style="font-size:12px;color:var(--text-muted)">${a.assigned_name||'Non assigné'}${a.model?' · '+a.model:''}</div>
+                <div style="font-size:13px;font-weight:600;font-family:monospace;color:var(--accent)">${escapeHtml(a.hostname)}</div>
+                <div style="font-size:12px;color:var(--text-muted)">${escapeHtml(a.assigned_name||'Non assigné')}${a.model?' · '+escapeHtml(a.model):''}</div>
             </div>
             ${stBadge(a.status)}
         </div>`).join('');
@@ -332,8 +332,8 @@ function renderDpLicenses(list) {
         return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
             <div style="width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0"></div>
             <div style="flex:1;min-width:0">
-                <div style="font-size:13px;font-weight:600">${l.name}${l.vendor?' <span style="color:var(--text-muted)">('+l.vendor+')</span>':''}</div>
-                <div style="font-size:12px;color:var(--text-muted)">${l.assigned_to_label||''} · ${costStr}</div>
+                <div style="font-size:13px;font-weight:600">${escapeHtml(l.name)}${l.vendor?' <span style="color:var(--text-muted)">('+escapeHtml(l.vendor)+')</span>':''}</div>
+                <div style="font-size:12px;color:var(--text-muted)">${escapeHtml(l.assigned_to_label||'')} · ${costStr}</div>
             </div>
             <span class="badge badge-active">Active</span>
         </div>`;

@@ -1009,7 +1009,7 @@ function _apRenderLicenses(lics) {
             row.innerHTML = `
                 <div style="width:8px;height:8px;border-radius:50%;background:${_CAT_COLORS_AP[l.category]||'#64748b'};flex-shrink:0"></div>
                 <div style="flex:1;min-width:0">
-                    <div style="font-size:13px;font-weight:600">${l.name}${l.vendor?' <span style="color:var(--text-muted)">('+l.vendor+')</span>':''}</div>
+                    <div style="font-size:13px;font-weight:600">${escapeHtml(l.name)}${l.vendor?' <span style="color:var(--text-muted)">('+escapeHtml(l.vendor)+')</span>':''}</div>
                     <div style="font-size:12px;color:var(--text-muted)">${parseFloat(l.cost_per_seat||0)>0?parseFloat(l.cost_per_seat).toLocaleString('fr-FR',{minimumFractionDigits:2})+'€':'Inclus'}</div>
                 </div>
                 <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:rgba(34,211,160,.15);color:var(--success)">Active</span>

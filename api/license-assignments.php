@@ -1,15 +1,11 @@
 <?php
 require_once __DIR__ . '/../config/app.php';
-if (!is_logged_in()) {
-    http_response_code(401);
-    header('Content-Type: application/json');
-    echo json_encode(['success'=>false,'error'=>'Non authentifie']);
-    exit;
-}
+require_auth();
 
-$method = $_SERVER['REQUEST_METHOD'];
-$pdo    = db();
-$raw    = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+$method    = $_SERVER['REQUEST_METHOD'];
+$pdo       = db();
+$client_id = current_client_id();
+$raw       = json_decode(file_get_contents('php://input'), true) ?? $_POST;
 
 if ($method === 'GET') {
     $license_id      = (int)($_GET['license_id'] ?? 0);
@@ -24,8 +20,8 @@ if ($method === 'GET') {
             l.license_type, l.billing_period, l.cost_per_seat
             FROM license_assignments la
             JOIN licenses l ON la.license_id = l.id
-            WHERE la.asset_id = ?';
-        $params = [$asset_id_filter];
+            WHERE la.asset_id = ? AND l.client_id = ?';
+        $params = [$asset_id_filter, $client_id];
         if (!$include_revoked) { $sql .= ' AND la.active = 1'; }
         $sql .= ' ORDER BY la.active DESC, l.category, l.name';
         $stmt = $pdo->prepare($sql);
@@ -40,8 +36,8 @@ if ($method === 'GET') {
             l.license_type, l.billing_period, l.cost_per_seat
             FROM license_assignments la
             JOIN licenses l ON la.license_id = l.id
-            WHERE la.employee_id = ?';
-        $params = [$employee_filter];
+            WHERE la.employee_id = ? AND l.client_id = ?';
+        $params = [$employee_filter, $client_id];
         if (!$include_revoked) { $sql .= ' AND la.active = 1'; }
         $sql .= ' ORDER BY la.active DESC, l.category, l.name';
         $stmt = $pdo->prepare($sql);
@@ -54,10 +50,11 @@ if ($method === 'GET') {
         a.hostname, a.os_type, a.model,
         CONCAT(e.first_name," ",e.last_name) as employee_name, e.position
         FROM license_assignments la
+        JOIN licenses l ON la.license_id = l.id
         LEFT JOIN assets a ON la.asset_id = a.id
         LEFT JOIN employees e ON la.employee_id = e.id
-        WHERE la.license_id = ?';
-    $params = [$license_id];
+        WHERE la.license_id = ? AND l.client_id = ?';
+    $params = [$license_id, $client_id];
     if (!$include_revoked) { $sql .= ' AND la.active = 1'; }
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -69,6 +66,21 @@ if ($method === 'POST') {
     $asset   = $raw['asset_id'] ?: null;
     $emp     = $raw['employee_id'] ?: null;
     if (!$lic_id || (!$asset && !$emp)) json_error('license_id et asset_id ou employee_id requis');
+
+    // Appartenance au client courant (anti-IDOR) : licence + ressource cible
+    $own = $pdo->prepare('SELECT id FROM licenses WHERE id=? AND client_id=?');
+    $own->execute([$lic_id, $client_id]);
+    if (!$own->fetch()) json_error('Licence introuvable', 404);
+    if ($asset) {
+        $c = $pdo->prepare('SELECT id FROM assets WHERE id=? AND client_id=?');
+        $c->execute([$asset, $client_id]);
+        if (!$c->fetch()) json_error('Poste introuvable', 404);
+    }
+    if ($emp) {
+        $c = $pdo->prepare('SELECT id FROM employees WHERE id=? AND client_id=?');
+        $c->execute([$emp, $client_id]);
+        if (!$c->fetch()) json_error('Employé introuvable', 404);
+    }
 
     // Check seat availability (only count active assignments)
     $seats = $pdo->prepare('SELECT total_seats, (SELECT COUNT(*) FROM license_assignments WHERE license_id=l.id AND active=1) as used FROM licenses l WHERE id=?');
@@ -102,7 +114,7 @@ if ($method === 'POST') {
 if ($method === 'DELETE') {
     $id     = (int)($raw['id'] ?? 0);
     $lic_id = (int)($raw['license_id'] ?? 0);
-    $pdo->prepare('DELETE FROM license_assignments WHERE id=?')->execute([$id]);
+    $pdo->prepare('DELETE la FROM license_assignments la JOIN licenses l ON la.license_id=l.id WHERE la.id=? AND l.client_id=?')->execute([$id, $client_id]);
     if ($lic_id) {
         $pdo->prepare('UPDATE licenses SET used_seats=(SELECT COUNT(*) FROM license_assignments WHERE license_id=? AND active=1) WHERE id=?')
             ->execute([$lic_id, $lic_id]);

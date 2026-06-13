@@ -1401,10 +1401,10 @@ async function impConfirm(){
 
         tip.innerHTML = assets.map(a => `
             <div class="emp-tip-row">
-                <span class="emp-tip-os ${a.os}">${a.os}</span>
+                <span class="emp-tip-os ${a.os}">${escapeHtml(a.os)}</span>
                 <div style="flex:1;min-width:0">
-                    <div class="emp-tip-hostname">${a.hostname}</div>
-                    ${a.model ? `<div class="emp-tip-model">${a.model}</div>` : ''}
+                    <div class="emp-tip-hostname">${escapeHtml(a.hostname)}</div>
+                    ${a.model ? `<div class="emp-tip-model">${escapeHtml(a.model)}</div>` : ''}
                 </div>
             </div>`).join('');
 
@@ -1460,8 +1460,8 @@ async function impConfirm(){
             <div class="emp-tip-row">
                 <span style="width:8px;height:8px;border-radius:50%;background:${CAT_COLORS[l.category]||'#64748b'};flex-shrink:0;display:inline-block"></span>
                 <div style="flex:1;min-width:0">
-                    <div class="emp-tip-hostname" style="font-family:inherit;font-size:12.5px">${l.name}${l.vendor?' <span style="opacity:.6">('+l.vendor+')</span>':''}</div>
-                    <div class="emp-tip-model">${CAT_LABELS[l.category]||l.category}</div>
+                    <div class="emp-tip-hostname" style="font-family:inherit;font-size:12.5px">${escapeHtml(l.name)}${l.vendor?' <span style="opacity:.6">('+escapeHtml(l.vendor)+')</span>':''}</div>
+                    <div class="emp-tip-model">${CAT_LABELS[l.category]||escapeHtml(l.category)}</div>
                 </div>
             </div>`).join('');
 

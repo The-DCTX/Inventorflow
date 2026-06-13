@@ -181,6 +181,15 @@ fi
 printf '%s\n' "$TARGET_VER" > "$APP_DIR/VERSION"
 if [[ -f "$APP_DIR/config/app.php" ]]; then
     sed -i.bak -E "s/define\('APP_VERSION', *'[^']*'\)/define('APP_VERSION', '${TARGET_VER}')/" "$APP_DIR/config/app.php" && rm -f "$APP_DIR/config/app.php.bak"
+    # Migration sécurité : durcir le cookie de session (SameSite=Lax, HttpOnly) sur
+    # les installs antérieures dont le config/app.php (préservé) ne l'a pas encore.
+    if ! grep -q 'session_set_cookie_params' "$APP_DIR/config/app.php"; then
+        php -r '$f=$argv[1]; $s=file_get_contents($f);
+$b="session_set_cookie_params([\n    \x27httponly\x27 => true,\n    \x27samesite\x27 => \x27Lax\x27,\n    \x27secure\x27   => (!empty(\$_SERVER[\x27HTTPS\x27]) && \$_SERVER[\x27HTTPS\x27] !== \x27off\x27) || ((\$_SERVER[\x27HTTP_X_FORWARDED_PROTO\x27] ?? \x27\x27) === \x27https\x27),\n    \x27path\x27     => \x27/\x27,\n]);\n";
+if (strpos($s,"session_start();")!==false) { $s=preg_replace("/session_start\(\);/",$b."session_start();",$s,1); file_put_contents($f,$s); }' "$APP_DIR/config/app.php" \
+            && ok "Cookie de session durci (SameSite/HttpOnly) appliqué à config/app.php." \
+            || warn "Durcissement cookie non appliqué — vérifiez config/app.php."
+    fi
 fi
 [[ -f "$APP_DIR/install.php" ]] && rm -f "$APP_DIR/install.php"
 chown -R www-data:www-data "$APP_DIR" 2>/dev/null || true

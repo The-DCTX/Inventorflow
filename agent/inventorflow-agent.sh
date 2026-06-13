@@ -26,7 +26,7 @@ IF_INTERVAL=300          # Monitoring : toutes les 5 min
 IF_REG_EVERY=12          # Enregistrement complet : toutes les 12 cycles (60 min)
 IF_LAN_WHITELIST="192\.168\.\."  # IPs LAN ignorées (regex) — pas d'alerte pour le réseau local
 IF_LOG="/var/log/inventorflow-agent.log"
-IF_AGENT_VERSION="1.0.12"  # version embarquée (auto-update)
+IF_AGENT_VERSION="1.0.13"  # version embarquée (auto-update)
 IF_SELF_UPDATE=true       # false pour désactiver la mise à jour automatique de l'agent
 # ─────────────────────────────────────────────────────────────
 

@@ -343,6 +343,13 @@ define('APP_VERSION',  '${APP_VER}');
 define('APP_URL',      '');
 define('SESSION_NAME', 'inventorflow_session');
 session_name(SESSION_NAME);
+session_set_cookie_params([
+    'httponly' => true,
+    'samesite' => 'Lax',
+    'secure'   => (!empty(\$_SERVER['HTTPS']) && \$_SERVER['HTTPS'] !== 'off')
+                  || ((\$_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'),
+    'path'     => '/',
+]);
 session_start();
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/../includes/auth.php';
@@ -382,6 +389,10 @@ if [[ -f "$UPDATE_SH" ]]; then
     chown root:root "$UPDATE_SH"
     chmod 755 "$UPDATE_SH"
     [[ -f "$RESTORE_SH" ]] && { chown root:root "$RESTORE_SH"; chmod 755 "$RESTORE_SH"; }
+    # Le dossier ne doit pas être modifiable par le web, sinon www-data pourrait
+    # remplacer ces scripts root et obtenir un RCE root via le NOPASSWD.
+    chown root:root "${INSTALL_DIR}/maintenance"
+    chmod 755 "${INSTALL_DIR}/maintenance"
     SUDOERS_FILE="/etc/sudoers.d/inventorflow-update"
     if [[ -f "$RESTORE_SH" ]]; then
         echo "www-data ALL=(root) NOPASSWD: ${UPDATE_SH}, ${RESTORE_SH}" > "$SUDOERS_FILE"

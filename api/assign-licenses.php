@@ -21,6 +21,12 @@ if ($method === 'GET' && !empty($_GET['available'])) {
 
     $col = $target === 'asset' ? 'asset_id' : 'employee_id';
 
+    // La ressource cible doit appartenir au client courant (anti-IDOR)
+    $entity_table = $target === 'asset' ? 'assets' : 'employees';
+    $own = $pdo->prepare("SELECT id FROM $entity_table WHERE id=? AND client_id=?");
+    $own->execute([$entity_id, $client_id]);
+    if (!$own->fetch()) json_error('Ressource introuvable', 404);
+
     $stmt = $pdo->prepare("
         SELECT l.id, l.name, l.vendor, l.category, l.target,
                l.license_type, l.total_seats, l.used_seats,
@@ -63,6 +69,12 @@ if ($method === 'POST') {
     if (!$lic) json_error('Licence introuvable', 404);
     if ($lic['target'] !== $target) json_error('Cette licence ne peut pas être attribuée à ce type de ressource');
 
+    // La ressource cible doit aussi appartenir à ce client (anti-IDOR)
+    $entity_table = $target === 'asset' ? 'assets' : 'employees';
+    $ent = $pdo->prepare("SELECT id FROM $entity_table WHERE id=? AND client_id=?");
+    $ent->execute([$entity_id, $client_id]);
+    if (!$ent->fetch()) json_error('Ressource cible introuvable', 404);
+
     // Déjà attribuée ?
     $dup = $pdo->prepare("SELECT id FROM license_assignments WHERE license_id=? AND $col=? AND active=1");
     $dup->execute([$license_id, $entity_id]);
@@ -89,8 +101,8 @@ if ($method === 'DELETE') {
     $license_id    = (int)($raw['license_id'] ?? 0);
     if (!$assignment_id) json_error('assignment_id requis');
 
-    $pdo->prepare('UPDATE license_assignments SET active=0, revoked_at=CURDATE() WHERE id=?')
-        ->execute([$assignment_id]);
+    $pdo->prepare('UPDATE license_assignments la JOIN licenses l ON la.license_id=l.id SET la.active=0, la.revoked_at=CURDATE() WHERE la.id=? AND l.client_id=?')
+        ->execute([$assignment_id, $client_id]);
 
     if ($license_id) {
         $pdo->prepare('UPDATE licenses SET used_seats=(SELECT COUNT(*) FROM license_assignments WHERE license_id=? AND active=1) WHERE id=?')

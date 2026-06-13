@@ -221,7 +221,7 @@ render_icons();
     <div class="lic-row <?= $l['active'] ? '' : 'revoked revoked-row' ?>" style="<?= $l['active'] ? '' : 'display:none' ?>">
         <div style="width:8px;height:8px;border-radius:50%;background:<?= $l['active'] ? 'var(--success)' : 'var(--danger)' ?>;flex-shrink:0"></div>
         <div style="flex:1;min-width:0">
-            <div class="lic-name"><?= h($l['name']) ?><?= $l['vendor'] ? ' <span class="text-muted">('.$l['vendor'].')</span>' : '' ?></div>
+            <div class="lic-name"><?= h($l['name']) ?><?= $l['vendor'] ? ' <span class="text-muted">('.h($l['vendor']).')</span>' : '' ?></div>
             <div class="lic-meta">
                 <?= h(ucfirst($l['category'])) ?> ·
                 <?= $l['cost_per_seat'] > 0 ? number_format((float)$l['cost_per_seat'],2,',','').'€/'.(($l['billing_period']==='annual')?'an':'mois') : 'Inclus' ?>
@@ -242,7 +242,7 @@ render_icons();
     <div class="lic-row">
         <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0"></div>
         <div style="flex:1;min-width:0">
-            <div class="lic-name"><?= h($l['name']) ?><?= $l['vendor'] ? ' <span class="text-muted">('.$l['vendor'].')</span>' : '' ?></div>
+            <div class="lic-name"><?= h($l['name']) ?><?= $l['vendor'] ? ' <span class="text-muted">('.h($l['vendor']).')</span>' : '' ?></div>
             <div class="lic-meta"><?= h($l['hostname']) ?> · <?= h(ucfirst($l['category'])) ?> · <?= $l['cost_per_seat'] > 0 ? number_format((float)$l['cost_per_seat'],2,',','').'€' : 'Inclus' ?></div>
         </div>
         <span class="badge badge-active">Active</span>

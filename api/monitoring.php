@@ -26,10 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'SELECT ms.*, a.hostname
          FROM monitoring_snapshots ms
          JOIN assets a ON ms.asset_id = a.id
-         WHERE ms.asset_id = ?
+         WHERE ms.asset_id = ? AND a.client_id = ?
          ORDER BY ms.collected_at DESC LIMIT 1'
     );
-    $snap->execute([$asset_id]);
+    $snap->execute([$asset_id, current_client_id()]);
     $row = $snap->fetch(PDO::FETCH_ASSOC);
 
     json_success($row ?: null);

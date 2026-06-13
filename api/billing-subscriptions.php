@@ -1,11 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/app.php';
-if (!is_logged_in()) {
-    http_response_code(401);
-    header('Content-Type: application/json');
-    echo json_encode(['success'=>false,'error'=>'Non authentifie']);
-    exit;
-}
+require_auth();
 
 $method = $_SERVER['REQUEST_METHOD'];
 $pdo    = db();
@@ -55,7 +50,7 @@ function calc_subscription_revenue(array $sub, PDO $pdo): array {
 
 // Quick GET for client subscriptions (used by asset panel)
 if ($method === 'GET') {
-    $cid = (int)($_GET['client_id'] ?? current_client_id());
+    $cid = current_client_id(); // on n'honore aucun client_id de requête (anti-IDOR)
     $stmt = $pdo->prepare('SELECT bs.*, s.name, s.category, s.color, s.price, s.unit, s.billing_period
         FROM billing_subscriptions bs JOIN billing_services s ON bs.service_id=s.id
         WHERE bs.client_id=? AND bs.active=1 ORDER BY s.category');
@@ -64,7 +59,7 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
-    $client_id  = (int)($raw['client_id'] ?? current_client_id());
+    $client_id  = (int)current_client_id(); // toujours le client courant (anti-IDOR)
     $service_id = (int)($raw['service_id'] ?? 0);
     if (!$client_id || !$service_id) json_error('client_id et service_id requis');
 
@@ -82,20 +77,20 @@ if ($method === 'POST') {
 if ($method === 'PUT') {
     $id = (int)($raw['id'] ?? 0);
     if (!$id) json_error('ID manquant');
-    $pdo->prepare('UPDATE billing_subscriptions SET qty_override=?,discount_pct=?,custom_price=?,notes=?,active=? WHERE id=?')
+    $pdo->prepare('UPDATE billing_subscriptions SET qty_override=?,discount_pct=?,custom_price=?,notes=?,active=? WHERE id=? AND client_id=?')
         ->execute([
             $raw['qty_override'] !== '' ? ($raw['qty_override'] ?: null) : null,
             (float)($raw['discount_pct'] ?? 0),
             $raw['custom_price'] !== '' ? ($raw['custom_price'] ?: null) : null,
             $raw['notes'] ?: null,
             (int)($raw['active'] ?? 1),
-            $id]);
+            $id, (int)current_client_id()]);
     json_success([], 'Abonnement mis à jour');
 }
 
 if ($method === 'DELETE') {
     $id = (int)($raw['id'] ?? 0);
-    $pdo->prepare('DELETE FROM billing_subscriptions WHERE id=?')->execute([$id]);
+    $pdo->prepare('DELETE FROM billing_subscriptions WHERE id=? AND client_id=?')->execute([$id, (int)current_client_id()]);
     json_success([], 'Abonnement supprimé');
 }
 

@@ -2,7 +2,9 @@
 # InventorFlow — Script de backup
 # Les credentials sont lus depuis config/db.php (pas de valeurs hardcodées)
 set -euo pipefail
-umask 0000
+# 0027 : backups lisibles par www-data uniquement (dir 750, fichiers 640).
+# Évite qu'un utilisateur local lise les dumps DB ou dépose une archive piégée.
+umask 0027
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="$(dirname "$SCRIPT_DIR")"
@@ -21,6 +23,7 @@ DB_USER=$(_db_conf DB_USER)
 DB_PASS=$(_db_conf DB_PASS)
 
 mkdir -p "$BACKUP_DIR"
+chmod 750 "$BACKUP_DIR" 2>/dev/null || true   # auto-corrige un éventuel 777 hérité
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$BACKUP_DIR/backup.log"; }
 
 # ── Backup fichiers ──────────────────────────────────────────

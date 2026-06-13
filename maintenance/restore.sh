@@ -79,6 +79,14 @@ fi
 if [[ -n "$FILES_FILE" ]]; then
   log "Restauration des fichiers (config/db.php préservé)…"
   REL="${APP_DIR#/}"
+  # Anti-écrasement root : refuser chemins absolus, traversée '..' ou toute
+  # entrée hors de l'arborescence applicative ${REL}/ (les backups légitimes
+  # générés par backup.sh y sont tous). Substitution (pas de grep -q) pour
+  # éviter le piège SIGPIPE/pipefail.
+  BAD_ABS=$(tar tzf "$FILES_FILE" 2>/dev/null | grep -E '^/|(^|/)\.\.(/|$)' | head -1)
+  [[ -n "$BAD_ABS" ]] && err "Archive refusée (chemin absolu ou '..') : $BAD_ABS"
+  BAD_OUT=$(tar tzf "$FILES_FILE" 2>/dev/null | grep -vE "^${REL}/" | head -1)
+  [[ -n "$BAD_OUT" ]] && err "Archive refusée (hors de ${REL}/) : $BAD_OUT"
   tar xzf "$FILES_FILE" -C / --exclude="${REL}/config/db.php" \
     && log "Fichiers restaurés." || err "Échec restauration fichiers."
 fi
