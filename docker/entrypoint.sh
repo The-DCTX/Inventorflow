@@ -35,6 +35,42 @@ function db(): PDO {
 }
 PHP
 
+# 1b) config/app.php — bootstrap applicatif (identique à install.sh), avec cookie
+#     de session durci (HttpOnly + SameSite=Lax ; Secure auto derrière un proxy HTTPS).
+APP_VER="$(tr -cd '0-9.' < "$APP/VERSION" 2>/dev/null || true)"; APP_VER="${APP_VER:-1.0.0}"
+cat > "$APP/config/app.php" <<PHP
+<?php
+define('APP_VERSION',  '${APP_VER}');
+define('APP_URL',      '');
+define('SESSION_NAME', 'inventorflow_session');
+session_name(SESSION_NAME);
+session_set_cookie_params([
+    'httponly' => true,
+    'samesite' => 'Lax',
+    'secure'   => (!empty(\$_SERVER['HTTPS']) && \$_SERVER['HTTPS'] !== 'off')
+                  || ((\$_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'),
+    'path'     => '/',
+]);
+session_start();
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/functions.php';
+if (!isset(\$_SESSION['_app_settings'])) {
+    try {
+        \$rows = db()->query('SELECT setting_key, setting_value FROM app_settings')->fetchAll();
+        \$_SESSION['_app_settings'] = array_column(\$rows, 'setting_value', 'setting_key');
+    } catch (Throwable \$e) { \$_SESSION['_app_settings'] = []; }
+}
+function app_setting(string \$key, string \$default = ''): string {
+    return \$_SESSION['_app_settings'][\$key] ?? \$default;
+}
+define('APP_NAME',       app_setting('app_name', 'InventorFlow'));
+define('APP_THEME',      app_setting('theme', 'dark'));
+define('APP_SERVER_URL', app_setting('app_url', ''));
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
+PHP
+
 # 2) Mot de passe de restauration de secours (optionnel, via l'environnement).
 if [ -n "$RECOVERY_PASS" ]; then
     php -r '$h=password_hash(getenv("RECOVERY_PASS"),PASSWORD_DEFAULT);
